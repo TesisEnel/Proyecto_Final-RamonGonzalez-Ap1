@@ -1,0 +1,263 @@
+/* Fuente Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Estilos base */
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    background-color: #f8f9fa;
+}
+
+/* Header - Actualizado con fondo negro */
+.header-gradient {
+    background: #1A1A1A !important; /* Sobreescribe el gradient con negro */
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Logo - Tamaño aumentado */
+.logo img {
+    height: 5rem !important; /* 80px - tamaño aumentado */
+    width: auto;
+}
+
+/* Navegación */
+.nav-link {
+    font-weight: 500;
+    color: white;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+    .nav-link:hover {
+        color: #fbbf24; /* Amarillo */
+    }
+
+/* Buscador */
+.search-input {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    border: none;
+    outline: none;
+}
+
+.search-button {
+    background-color: #fbbf24;
+    color: black;
+    border: none;
+    border-radius: 0 9999px 9999px 0;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+    .search-button:hover {
+        background-color: #f59e0b;
+    }
+
+/* Banner principal - Manteniendo tus estilos pero con opacidad */
+.hero-bg {
+    position: relative;
+    height: 100vh;
+    background-color: #1A1A1A;
+    overflow: hidden;
+}
+
+    .hero-bg::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: url('/imagenes/banners/banner1.jpg');
+        background-size: cover;
+        background-position: center;
+        opacity: 0.7;
+    }
+
+/* Contenido del banner */
+.hero-content {
+    position: relative;
+    z-index: 10;
+    background-color: rgba(26, 26, 26, 0.8);
+    padding: 2rem;
+    border-radius: 0.5rem;
+    color: white;
+}
+
+/* Categorías y productos - Actualizado sin badges y carrito */
+.section-title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 3rem;
+    color: #1A1A1A;
+}
+
+.category-card, .product-card {
+    background: white;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+}
+
+    .category-card:hover, .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .category-card img {
+        transition: transform 0.3s ease;
+    }
+
+    .category-card:hover img {
+        transform: scale(1.05);
+    }
+
+.product-image {
+    width: 100%;
+    height: 16rem;
+    object-fit: contain;
+}
+
+/* Eliminados los estilos de offer-badge y carrito */
+.offer-badge, .shopping-cart-badge {
+    display: none !important;
+}
+
+/* Marcas */
+.brand-logo {
+    height: 3rem;
+    filter: grayscale(100%);
+    transition: filter 0.3s;
+}
+
+    .brand-logo:hover {
+        filter: grayscale(0%);
+    }
+
+/* Newsletter */
+.newsletter {
+    background-color: #1A1A1A;
+    color: white;
+}
+
+.newsletter-input {
+    flex-grow: 1;
+    padding: 0.75rem 1rem;
+    border-radius: 9999px 0 0 9999px;
+    border: none;
+    outline: none;
+}
+
+.newsletter-button {
+    background-color: #fbbf24;
+    color: black;
+    font-weight: 700;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0 9999px 9999px 0;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+    .newsletter-button:hover {
+        background-color: #f59e0b;
+    }
+
+/* Footer */
+.footer {
+    background-color: #1A1A1A;
+    color: white;
+}
+
+.footer-links li {
+    margin-bottom: 8px;
+}
+
+.footer-links a {
+    color: #9ca3af;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+    .footer-links a:hover {
+        color: #fbbf24;
+    }
+
+/* Botón WhatsApp */
+.whatsapp-button {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background-color: #25D366;
+    color: white;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+}
+
+    .whatsapp-button:hover {
+        background-color: #128C7E;
+        transform: scale(1.05);
+    }
+
+/* Utilidades */
+.text-yellow {
+    color: #fbbf24;
+}
+
+.bg-yellow {
+    background-color: #fbbf24;
+}
+
+.hover\:text-yellow:hover {
+    color: #fbbf24;
+}
+
+.hover\:bg-yellow:hover {
+    background-color: #f59e0b;
+}
+
+/* Clases para rating */
+.rating {
+    color: #fbbf24;
+}
+
+/* Precios */
+.price {
+    font-weight: 700;
+    font-size: 1.125rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .logo img {
+        height: 4rem;
+    }
+
+    .hero-content {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .product-image {
+        height: 12rem;
+    }
+
+    .nav-link {
+        padding: 0.5rem 0;
+    }
+}
