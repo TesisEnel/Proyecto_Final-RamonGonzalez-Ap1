@@ -9,6 +9,8 @@ using Microsoft.Extensions.Primitives;
 using Proyecto_Final.Components.Account.Pages;
 using Proyecto_Final.Components.Account.Pages.Manage;
 using Proyecto_Final.Data;
+using Proyecto_Final.Models.Pedidos;
+using Proyecto_Final.Models.Usuario;
 
 namespace Microsoft.AspNetCore.Routing
 {

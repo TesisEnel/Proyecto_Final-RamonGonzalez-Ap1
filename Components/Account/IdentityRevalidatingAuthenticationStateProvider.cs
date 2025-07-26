@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Proyecto_Final.Data;
+using Proyecto_Final.Models.Pedidos;
+using Proyecto_Final.Models.Usuario;
 
 namespace Proyecto_Final.Components.Account
 {
