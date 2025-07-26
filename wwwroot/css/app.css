@@ -8,6 +8,9 @@ body {
     padding: 0;
     color: #333;
     background-color: #f8f9fa;
+    display: flex; /* Añadir display flex para que el footer se quede abajo */
+    flex-direction: column; /* Organizar los hijos en columna */
+    min-height: 100vh; /* Asegura que el body ocupe al menos toda la altura de la vista */
 }
 
 /* Header - Actualizado con fondo negro */
