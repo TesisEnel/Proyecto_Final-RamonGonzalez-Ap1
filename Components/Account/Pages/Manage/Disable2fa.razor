@@ -2,11 +2,13 @@
 
 @using Microsoft.AspNetCore.Identity
 @using Proyecto_Final.Data
+@using Proyecto_Final.Models.Usuario
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityUserAccessor UserAccessor
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<Disable2fa> Logger
+
 
 <PageTitle>Disable two-factor authentication (2FA)</PageTitle>
 
