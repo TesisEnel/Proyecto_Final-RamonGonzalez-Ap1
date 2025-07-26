@@ -1,32 +1,27 @@
-/* Fuente Inter */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* Estilos base */
 body {
     font-family: 'Inter', sans-serif;
     margin: 0;
     padding: 0;
     color: #333;
     background-color: #f8f9fa;
-    display: flex; /* Añadir display flex para que el footer se quede abajo */
-    flex-direction: column; /* Organizar los hijos en columna */
-    min-height: 100vh; /* Asegura que el body ocupe al menos toda la altura de la vista */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
-/* Header - Actualizado con fondo negro */
 .header-gradient {
-    background: #1A1A1A !important; /* Sobreescribe el gradient con negro */
+    background: #1A1A1A !important;
     color: white;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Logo - Tamaño aumentado */
 .logo img {
-    height: 5rem !important; /* 80px - tamaño aumentado */
+    height: 5rem !important;
     width: auto;
 }
 
-/* Navegación */
 .nav-link {
     font-weight: 500;
     color: white;
@@ -35,10 +30,9 @@ body {
 }
 
     .nav-link:hover {
-        color: #fbbf24; /* Amarillo */
+        color: #fbbf24;
     }
 
-/* Buscador */
 .search-input {
     width: 100%;
     padding: 0.5rem 1rem;
@@ -61,7 +55,6 @@ body {
         background-color: #f59e0b;
     }
 
-/* Banner principal - Manteniendo tus estilos pero con opacidad */
 .hero-bg {
     position: relative;
     height: 100vh;
@@ -79,7 +72,6 @@ body {
         opacity: 0.7;
     }
 
-/* Contenido del banner */
 .hero-content {
     position: relative;
     z-index: 10;
@@ -89,7 +81,6 @@ body {
     color: white;
 }
 
-/* Categorías y productos - Actualizado sin badges y carrito */
 .section-title {
     font-size: 1.875rem;
     font-weight: 700;
@@ -125,12 +116,10 @@ body {
     object-fit: contain;
 }
 
-/* Eliminados los estilos de offer-badge y carrito */
 .offer-badge, .shopping-cart-badge {
     display: none !important;
 }
 
-/* Marcas */
 .brand-logo {
     height: 3rem;
     filter: grayscale(100%);
@@ -141,7 +130,6 @@ body {
         filter: grayscale(0%);
     }
 
-/* Newsletter */
 .newsletter {
     background-color: #1A1A1A;
     color: white;
@@ -170,7 +158,6 @@ body {
         background-color: #f59e0b;
     }
 
-/* Footer */
 .footer {
     background-color: #1A1A1A;
     color: white;
@@ -190,7 +177,6 @@ body {
         color: #fbbf24;
     }
 
-/* Botón WhatsApp */
 .whatsapp-button {
     position: fixed;
     bottom: 1.5rem;
@@ -212,7 +198,6 @@ body {
         transform: scale(1.05);
     }
 
-/* Utilidades */
 .text-yellow {
     color: #fbbf24;
 }
@@ -229,18 +214,15 @@ body {
     background-color: #f59e0b;
 }
 
-/* Clases para rating */
 .rating {
     color: #fbbf24;
 }
 
-/* Precios */
 .price {
     font-weight: 700;
     font-size: 1.125rem;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .logo img {
         height: 4rem;
