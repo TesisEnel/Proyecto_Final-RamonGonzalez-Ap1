@@ -4,10 +4,8 @@
     <div class="container mx-auto px-4">
         <div class="flex flex-col md:flex-row justify-between items-center py-4">
             <div class="flex items-center mb-4 md:mb-0">
-                <!-- Logo -->
                 <img src="imagenes/logo/logo.png" alt="Golazo Store" class="h-20">
 
-                <!-- Menú de navegación -->
                 <div class="hidden md:flex space-x-6 ml-8">
                     <NavLink href="/" class="font-medium hover:text-yellow-400">Inicio</NavLink>
                     <NavLink href="/camisetas" class="font-medium hover:text-yellow-400">Camisetas</NavLink>
@@ -36,190 +34,17 @@
     </div>
 </header>
 
+@* Esta nav puede ser para submenús o un espacio en blanco si no lo usas.
+   Si no la necesitas, puedes eliminarla. *@
 <nav class="bg-white shadow-md">
     <div class="container mx-auto px-4">
-        <!-- Espacio reservado -->
     </div>
 </nav>
 
-<main>
+<main class="flex-grow">
     @Body
 </main>
 
-<!-- Banner principal -->
-<section class="relative w-full h-screen bg-[#1A1A1A] overflow-hidden">
-    <div class="absolute inset-0 bg-[url('imagenes/banners/banner1.jpg')] bg-cover bg-center opacity-70"></div>
-
-    <div class="container mx-auto h-full flex items-center relative z-10 px-4">
-        <div class="max-w-2xl bg-[#1A1A1A] bg-opacity-80 p-8 rounded-lg">
-            <div class="text-yellow-400 uppercase text-sm md:text-base font-bold tracking-widest mb-2">
-                CAMBIO DE TEMPORADA 2025/26
-            </div>
-
-            <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 leading-tight">
-                NUEVA COLECCIÓN<br>2025 - 2026
-            </h1>
-
-            <div class="text-white text-lg md:text-xl font-medium italic mb-6">
-                Lo mejor en equipamiento deportivo
-            </div>
-
-            <a href="#" class="inline-block bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-full transition-transform transform hover:scale-105">
-                Ver colección
-            </a>
-        </div>
-    </div>
-</section>
-
-<!-- Categorías -->
-<section class="py-16 bg-gray-100">
-    <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">CATEGORÍAS DESTACADAS</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <a href="#" class="category-card bg-white rounded-lg overflow-hidden text-center p-6 hover:shadow-xl transition duration-300 border border-gray-200">
-                <img src="imagenes/camisetas/camiseta1.webp" alt="Camisetas" class="w-full h-40 object-contain mx-auto mb-4">
-                <h3 class="font-semibold text-lg text-gray-800">CAMISETAS</h3>
-                <p class="text-gray-600 mt-2">Últimos modelos</p>
-            </a>
-
-            <a href="#" class="category-card bg-white rounded-lg overflow-hidden text-center p-6 hover:shadow-xl transition duration-300 border border-gray-200">
-                <img src="imagenes/guantes/guantes1.webp" alt="Guantes" class="w-full h-40 object-contain mx-auto mb-4">
-                <h3 class="font-semibold text-lg text-gray-800">GUANTES</h3>
-                <p class="text-gray-600 mt-2">Para porteros</p>
-            </a>
-
-            <a href="#" class="category-card bg-white rounded-lg overflow-hidden text-center p-6 hover:shadow-xl transition duration-300 border border-gray-200">
-                <img src="imagenes/accesorios/accesorio1.jpg" alt="Accesorios" class="w-full h-40 object-contain mx-auto mb-4">
-                <h3 class="font-semibold text-lg text-gray-800">ACCESORIOS</h3>
-                <p class="text-gray-600 mt-2">Complementos</p>
-            </a>
-
-            <a href="#" class="category-card bg-white rounded-lg overflow-hidden text-center p-6 hover:shadow-xl transition duration-300 border border-gray-200">
-                <img src="imagenes/Botines/botines1.webp" alt="Botines" class="w-full h-40 object-contain mx-auto mb-4">
-                <h3 class="font-semibold text-lg text-gray-800">BOTINES</h3>
-                <p class="text-gray-600 mt-2">Para todas las superficies</p>
-            </a>
-        </div>
-    </div>
-</section>
-
-<!-- Productos -->
-<section class="py-16 bg-white">
-    <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">PRODUCTOS DESTACADOS</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <!-- Producto 1 -->
-            <div class="product-card bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
-                <div class="relative">
-                    <img src="imagenes/camisetas/camiseta5.webp" alt="Camiseta" class="w-full h-64 object-contain">
-                </div>
-                <div class="p-4">
-                    <div class="text-xs text-gray-500 mb-1">Equipo Famoso</div>
-                    <h3 class="font-semibold text-gray-800 mb-2">Camiseta Visitante 24/25</h3>
-                    <div class="flex items-center mb-2 text-yellow-400">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star-half-alt"></i>
-                        <span class="text-gray-500 text-xs ml-1">(18)</span>
-                    </div>
-                    <div class="font-bold text-lg">RD$ 2,299</div>
-                </div>
-            </div>
-
-            <!-- Producto 2 -->
-            <div class="product-card bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
-                <div class="relative">
-                    <img src="imagenes/guantes/guantes3.jpg" alt="Guantes" class="w-full h-64 object-contain">
-                </div>
-                <div class="p-4">
-                    <div class="text-xs text-gray-500 mb-1">Marca Especialista</div>
-                    <h3 class="font-semibold text-gray-800 mb-2">Guantes Ultra Grip</h3>
-                    <div class="flex items-center mb-2 text-yellow-400">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="far fa-star"></i>
-                        <span class="text-gray-500 text-xs ml-1">(9)</span>
-                    </div>
-                    <div class="font-bold text-lg">RD$ 5,199</div>
-                </div>
-            </div>
-
-            <!-- Producto 3 -->
-            <div class="product-card bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
-                <div class="relative">
-                    <img src="imagenes/accesorios/accesorio5.jpg" alt="Accesorio" class="w-full h-64 object-contain">
-                </div>
-                <div class="p-4">
-                    <div class="text-xs text-gray-500 mb-1">Marca Deportiva</div>
-                    <h3 class="font-semibold text-gray-800 mb-2">Rodilleras Elite Pro</h3>
-                    <div class="flex items-center mb-2 text-yellow-400">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <span class="text-gray-500 text-xs ml-1">(25)</span>
-                    </div>
-                    <div class="font-bold text-lg">RD$ 1,499</div>
-                </div>
-            </div>
-
-            <!-- Producto 4 -->
-            <div class="product-card bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
-                <div class="relative">
-                    <img src="imagenes/Botines/botines4.webp" alt="Botines" class="w-full h-64 object-contain">
-                </div>
-                <div class="p-4">
-                    <div class="text-xs text-gray-500 mb-1">Marca Deportiva</div>
-                    <h3 class="font-semibold text-gray-800 mb-2">Botines Control Plus</h3>
-                    <div class="flex items-center mb-2 text-yellow-400">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="far fa-star"></i>
-                        <span class="text-gray-500 text-xs ml-1">(11)</span>
-                    </div>
-                    <div class="font-bold text-lg">RD$ 6,999</div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Marcas -->
-<section class="py-16 bg-gray-100">
-    <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">NUESTRAS MARCAS</h2>
-        <div class="flex flex-wrap justify-center items-center gap-8 md:gap-16">
-            <img src="imagenes/marcas/Nike.png" alt="Nike" class="h-12 object-contain grayscale hover:grayscale-0 transition duration-300">
-            <img src="imagenes/marcas/Adidas.png" alt="Adidas" class="h-12 object-contain grayscale hover:grayscale-0 transition duration-300">
-            <img src="imagenes/marcas/Puma.png" alt="Puma" class="h-12 object-contain grayscale hover:grayscale-0 transition duration-300">
-            <img src="imagenes/marcas/Under Armour.png" alt="Under Armour" class="h-12 object-contain grayscale hover:grayscale-0 transition duration-300">
-            <img src="imagenes/marcas/wilson.png" alt="Wilson" class="h-12 object-contain grayscale hover:grayscale-0 transition duration-300">
-        </div>
-    </div>
-</section>
-
-<!-- Newsletter -->
-<section class="py-16 bg-[#1A1A1A] text-white">
-    <div class="container mx-auto px-4 text-center">
-        <h2 class="text-3xl font-bold mb-4">SUSCRÍBETE A NUESTRO NEWSLETTER</h2>
-        <p class="text-gray-300 mb-8 max-w-2xl mx-auto">Recibe las últimas novedades, ofertas exclusivas y descuentos especiales directamente en tu correo.</p>
-        <div class="max-w-md mx-auto flex">
-            <input type="email" placeholder="Tu correo electrónico" class="flex-grow py-3 px-4 rounded-l-full text-gray-800 focus:outline-none">
-            <button class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-r-full transition-colors">
-                Suscribirse
-            </button>
-        </div>
-    </div>
-</section>
-
-<!-- Footer -->
 <footer class="bg-[#1A1A1A] text-white pt-12 pb-6">
     <div class="container mx-auto px-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -283,7 +108,6 @@
     </div>
 </footer>
 
-<!-- Botón de WhatsApp -->
 <a href="#" class="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition duration-300 z-50">
     <i class="fab fa-whatsapp text-2xl"></i>
 </a>
