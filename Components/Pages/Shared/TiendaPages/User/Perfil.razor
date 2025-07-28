@@ -1,0 +1,169 @@
+﻿@page "/perfil"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Proyecto_Final.Data
+@using Proyecto_Final.Models.Usuario
+@inject NavigationManager NavManager
+@inject ApplicationDbContext DbContext
+@inject UserManager<ApplicationUser> UserManager
+@inject ILogger<Perfil> Logger
+
+@attribute [Authorize] 
+
+<PageTitle>Mi Perfil - Golazo Store</PageTitle>
+
+<div class="container mx-auto px-4 py-8">
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <strong class="font-bold">Error:</strong>
+            <span class="block sm:inline">@errorMessage</span>
+        </div>
+    }
+    @if (currentUser != null)
+    {
+        <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">Hola, @currentUser.NombreCompleto!</h1>
+        <p class="text-lg text-gray-700 text-center mb-8">
+            Bienvenido a tu perfil. Tu rol es:
+            <span class="font-semibold capitalize">@string.Join(", ", userRoles)</span>.
+        </p>
+
+        <div class="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Información de la Cuenta</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <p class="mb-2"><span class="font-semibold">Email:</span> @currentUser.Email</p>
+                    <p class="mb-2"><span class="font-semibold">Nombre Completo:</span> @currentUser.NombreCompleto</p>
+                </div>
+                <div>
+                    <p class="mb-2"><span class="font-semibold">Teléfono:</span> @(currentUser.PhoneNumber ?? "No registrado")</p>
+                    <p class="mb-2"><span class="font-semibold">Fecha de Registro:</span> @currentUser.FechaRegistro.ToLocalTime().ToString("dd/MM/yyyy")</p>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-bold mt-8 mb-4">Mis Direcciones</h3>
+            @if (currentUser.Direcciones != null && currentUser.Direcciones.Any())
+            {
+                <ul class="space-y-3">
+                    @foreach (var direccion in currentUser.Direcciones)
+                    {
+                        <li class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <p class="font-medium">Dirección @(currentUser.Direcciones.IndexOf(direccion) + 1)</p>
+                            <p>@direccion.Calle, @direccion.Ciudad</p>
+                            <p>@direccion.Estado, @direccion.CodigoPostal</p>
+                            <p>@direccion.Pais</p>
+                        </li>
+                    }
+                </ul>
+                <button class="mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+                    + Añadir nueva dirección
+                </button>
+            }
+            else
+            {
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
+                    <p class="text-gray-600 mb-2">No tienes direcciones registradas</p>
+                    <button class="text-blue-600 hover:text-blue-800 font-medium">
+                        Añadir mi primera dirección
+                    </button>
+                </div>
+            }
+
+            <h3 class="text-xl font-bold mt-8 mb-4">Historial de Pedidos</h3>
+            @if (currentUser.Pedidos != null && currentUser.Pedidos.Any())
+            {
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="py-2 px-4 text-left">N° Pedido</th>
+                                <th class="py-2 px-4 text-left">Fecha</th>
+                                <th class="py-2 px-4 text-left">Estado</th>
+                                <th class="py-2 px-4 text-right">Total</th>
+                                <th class="py-2 px-4"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var pedido in currentUser.Pedidos.OrderByDescending(p => p.FechaPedido))
+                            {
+                                <tr class="border-b border-gray-200 hover:bg-gray-50">
+                                    <td class="py-3 px-4">#@pedido.Id</td>
+                                    <td class="py-3 px-4">@pedido.FechaPedido.ToString("dd/MM/yyyy")</td>
+                                    <td class="py-3 px-4">
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                                            Completado
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-4 text-right font-medium">@pedido.Total.ToString("C")</td>
+                                    <td class="py-3 px-4 text-right">
+                                        <button class="text-blue-600 hover:text-blue-800 text-sm">
+                                            Ver detalle
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
+                    <p class="text-gray-600 mb-2">Aún no has realizado ningún pedido</p>
+                    <NavLink href="/productos" class="text-blue-600 hover:text-blue-800 font-medium">
+                        Ver productos disponibles
+                    </NavLink>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private ApplicationUser currentUser;
+    private IList<string> userRoles = new List<string>();
+    private string errorMessage;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await authenticationStateTask;
+            var user = authState.User;
+
+            var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                currentUser = await DbContext.Users
+                    .AsNoTracking()
+                    .Include(u => u.Direcciones)
+                    .Include(u => u.Pedidos)
+                        .ThenInclude(p => p.Detalles)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+
+                if (currentUser != null)
+                    userRoles = await UserManager.GetRolesAsync(currentUser);
+                else
+                    errorMessage = "No se pudo cargar la información del usuario.";
+            }
+            else
+            {
+               
+                errorMessage = "No se pudo identificar al usuario autenticado.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Ocurrió un error al cargar tu perfil. Por favor intenta más tarde.";
+            Logger.LogError(ex, "Error al cargar perfil del usuario");
+        }
+    }
+}
