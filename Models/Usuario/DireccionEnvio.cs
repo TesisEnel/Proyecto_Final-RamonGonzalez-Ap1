@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Proyecto_Final.Models.Usuario;
+using Proyecto_Final.Models.Usuario; 
 
-namespace Proyecto_Final.Models.Usuario
+namespace Proyecto_Final.Models.Usuario 
 {
     public class DireccionEnvio
     {
@@ -13,13 +13,16 @@ namespace Proyecto_Final.Models.Usuario
         public string UsuarioId { get; set; }
 
         [ForeignKey("UsuarioId")]
-        public ApplicationUser Usuario { get; set; }
+        public ApplicationUser Usuario { get; set; } 
 
         [Required, MaxLength(100)]
         public string Calle { get; set; }
 
         [Required, MaxLength(50)]
         public string Ciudad { get; set; }
+
+        [Required, MaxLength(50)] 
+        public string Estado { get; set; }
 
         [Required, MaxLength(20)]
         public string CodigoPostal { get; set; }

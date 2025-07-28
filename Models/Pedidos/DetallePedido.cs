@@ -15,12 +15,10 @@ namespace Proyecto_Final.Models.Producto
         [Required]
         public decimal PrecioUnitario { get; set; }
 
-        // Relación con Pedido
         [ForeignKey("Pedido")]
         public int PedidoId { get; set; }
         public Pedido Pedido { get; set; }
 
-        // Relación con Producto (IMPORTANTE)
         [ForeignKey("Producto")]
         public int ProductoId { get; set; }
         public Producto Producto { get; set; }
