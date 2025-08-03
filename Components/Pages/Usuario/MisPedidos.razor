@@ -1,5 +1,100 @@
-﻿<h3>MisPedidos</h3>
+﻿@page "/mis-pedidos"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Proyecto_Final.Data
+@using Proyecto_Final.Models.Pedidos
+@using Proyecto_Final.Models.Usuario
+@using Microsoft.EntityFrameworkCore // Añadido para el método .Include()
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ApplicationDbContext DbContext
+@inject UserManager<ApplicationUser> UserManager
+@attribute [Authorize]
+
+<PageTitle>Mis Pedidos</PageTitle>
+
+<div class="container mx-auto p-4">
+    <h3 class="text-2xl font-bold mb-4 text-center">Historial de Pedidos</h3>
+
+    @if (pedidos == null)
+    {
+        <div class="text-center text-gray-500">Cargando pedidos...</div>
+    }
+    else if (!pedidos.Any())
+    {
+        <div class="text-center text-gray-500">
+            No tienes pedidos anteriores.
+        </div>
+    }
+    else
+    {
+        <div class="grid gap-6">
+            @foreach (var pedido in pedidos)
+            {
+                <div class="bg-white shadow-lg rounded-lg p-6">
+                    <div class="flex justify-between items-center mb-4 border-b pb-4">
+                        <div class="flex-1">
+                            <p class="text-sm text-gray-500">Pedido #@pedido.Id</p>
+                            <p class="font-bold text-lg">Fecha: @pedido.FechaPedido.ToShortDateString()</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-500">Total</p>
+                            <p class="font-bold text-xl text-blue-600">@pedido.Total.ToString("C")</p>
+                        </div>
+                    </div>
+
+                    <div class="divide-y divide-gray-200">
+                        @foreach (var item in pedido.Detalles) 
+                        {
+                            <div class="py-4 flex items-center">
+                                <div class="w-16 h-16 bg-gray-200 rounded-md mr-4 flex items-center justify-center">
+                                    <span class="text-gray-500 text-sm">@(item.Producto != null ? item.Producto.Nombre.Substring(0, 1) : "")</span>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-semibold text-gray-800">@(item.Producto?.Nombre ?? "Producto no disponible")</p>
+                                    <p class="text-sm text-gray-600">Cantidad: @item.Cantidad</p>
+                                    <p class="text-sm text-gray-600">Precio Unitario: @item.PrecioUnitario.ToString("C")</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-bold text-gray-800">@((item.Cantidad * item.PrecioUnitario).ToString("C"))</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-gray-200 text-right">
+                        <span class="text-gray-600 font-semibold">Total del Pedido: </span>
+                        <span class="text-xl font-bold text-blue-600">@pedido.Total.ToString("C")</span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
 
 @code {
+    private List<Pedido> pedidos;
+    private ApplicationUser currentUser;
 
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await authenticationStateTask;
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            currentUser = await UserManager.GetUserAsync(user);
+            if (currentUser != null)
+            {
+                pedidos = await DbContext.Pedidos
+                    .Where(p => p.UsuarioId == currentUser.Id)
+                    .Include(p => p.Detalles) 
+                        .ThenInclude(d => d.Producto) 
+                    .OrderByDescending(p => p.FechaPedido)
+                    .ToListAsync();
+            }
+        }
+    }
 }

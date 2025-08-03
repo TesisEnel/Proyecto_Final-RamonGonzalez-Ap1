@@ -1,0 +1,416 @@
+﻿@page "/productos/{id:int}"
+@using Proyecto_Final.Components.Pages.Shared.TiendaPages.Carrito
+@using Proyecto_Final.Data
+@using Proyecto_Final.Models.Producto
+@using Proyecto_Final.Services
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Identity
+@using Proyecto_Final.Models.Usuario
+@using System.Linq
+@inject ApplicationDbContext DbContext
+@inject ICarritoService CarritoService
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Detalle del Producto</PageTitle>
+
+@if (isLoading)
+{
+    <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+            <p class="mt-4 text-gray-600">Cargando detalles del producto...</p>
+        </div>
+    </div>
+}
+else if (producto == null)
+{
+    <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div class="text-center max-w-md mx-auto px-4">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">Producto no encontrado</h1>
+            <p class="text-gray-600 mb-8">Lo sentimos, el producto que busca no existe o ha sido eliminado.</p>
+            <NavLink href="/productos" class="inline-flex items-center px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors">
+                Volver a productos
+            </NavLink>
+        </div>
+    </div>
+}
+else
+{
+    <div class="min-h-screen bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div class="space-y-4">
+                    <div class="aspect-square bg-white rounded-2xl overflow-hidden">
+                        <img src="@(producto.ImagenUrl ?? "https://placehold.co/600x600/F5F5F5/9CA3AF?text=Sin+imagen")"
+                             alt="@producto.Nombre"
+                             class="w-full h-full object-contain" />
+                    </div>
+                </div>
+
+                <div class="space-y-8">
+                    <div>
+                        <h1 class="text-4xl font-bold text-gray-900 mb-4">@producto.Nombre</h1>
+
+                        @if (!string.IsNullOrEmpty(producto.Descripcion))
+                        {
+                            <div class="mb-4">
+                                <button @onclick="ToggleDescripcion" class="flex items-center justify-between w-full text-left">
+                                    <h3 class="text-lg font-semibold text-gray-900">Descripción</h3>
+                                    <svg class="w-5 h-5 text-gray-500 transform @(mostrarDescripcion ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                @if (mostrarDescripcion)
+                                {
+                                    <div class="mt-3 text-gray-600 leading-relaxed">
+                                        @producto.Descripcion
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <div class="flex items-baseline space-x-4 mb-6">
+                            <span class="text-3xl font-medium text-gray-900">
+                                @((producto.Precio * (1 - producto.Descuento)).ToString("C"))
+                            </span>
+                            @if (producto.Descuento > 0m)
+                            {
+                                <span class="text-xl text-gray-500 line-through">@producto.Precio.ToString("C")</span>
+                                <span class="bg-red-100 text-red-800 text-sm font-semibold px-3 py-1 rounded-full">
+                                    -@((producto.Descuento * 100).ToString("F0"))%
+                                </span>
+                            }
+                        </div>
+
+                        <div class="flex items-center space-x-2 mb-6">
+                            <div class="flex text-yellow-400">
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
+                                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                                </svg>
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
+                                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                                </svg>
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
+                                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                                </svg>
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
+                                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                                </svg>
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
+                                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                                </svg>
+                            </div>
+                            <span class="text-sm text-gray-600">(5)</span>
+                        </div>
+                    </div>
+
+                    @if (producto.Variaciones != null && producto.Variaciones.Any())
+                    {
+                        <div class="space-y-4">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-3">Talla:</h3>
+                                <div class="flex flex-wrap gap-3">
+                                    @foreach (var variacion in producto.Variaciones)
+                                    {
+                                        <button @onclick="() => SelectVariacion(variacion.Id)"
+                                                class="@(selectedVariacionId == variacion.Id ? "bg-black text-white border-black" : "bg-white text-gray-900 border-gray-300 hover:border-gray-400")
+                                                        px-6 py-3 border-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
+                                            @variacion.ValorAtributo
+                                        </button>
+                                    }
+                                </div>
+                                @if (selectedVariacion != null)
+                                {
+                                    <p class="text-sm text-gray-600 mt-2">
+                                        @selectedVariacion.Stock disponibles
+                                        @if (selectedVariacion.PrecioAdicional.HasValue && selectedVariacion.PrecioAdicional.Value != 0)
+                                        {
+                                            <span class="ml-2 font-medium">(+@selectedVariacion.PrecioAdicional.Value.ToString("C"))</span>
+                                        }
+                                    </p>
+                                }
+                            </div>
+
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-3">Cantidad:</h3>
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex items-center border border-gray-300 rounded-lg">
+                                        <button @onclick="DecrementarCantidad"
+                                                class="px-4 py-2 text-gray-600 hover:text-gray-800 focus:outline-none"
+                                                disabled="@(cantidad <= 1)">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                            </svg>
+                                        </button>
+                                        <span class="px-4 py-2 text-center font-medium min-w-[3rem]">@cantidad</span>
+                                        <button @onclick="IncrementarCantidad"
+                                                class="px-4 py-2 text-gray-600 hover:text-gray-800 focus:outline-none"
+                                                disabled="@(cantidad >= (selectedVariacion?.Stock ?? 1))">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    @if (!stockSuficiente)
+                                    {
+                                        <span class="text-red-600 text-sm font-medium">Stock insuficiente</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="pt-4">
+                                <button @onclick="AgregarAlCarrito"
+                                        class="w-full bg-black text-white font-semibold py-4 px-8 rounded-xl hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black"
+                                        disabled="@(!stockSuficiente || selectedVariacion == null)">
+                                    Añadir a la cesta
+                                </button>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="bg-gray-100 border border-gray-200 rounded-xl p-6">
+                            <p class="text-gray-700 font-medium">Este producto no tiene variaciones disponibles en este momento.</p>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(mensajeCarrito))
+                    {
+                        <div class="@(mensajeCarrito.Contains("éxito") ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-800") border rounded-xl p-4">
+                            <div class="flex items-center">
+                                @if (mensajeCarrito.Contains("éxito"))
+                                {
+                                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                }
+                                else
+                                {
+                                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                }
+                                <span class="font-medium">@mensajeCarrito</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (productosRecomendados != null && productosRecomendados.Any())
+            {
+                <div class="mt-16">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-6">Productos que te podrían interesar</h2>
+                    <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        @foreach (var prod in productosRecomendados)
+                        {
+                            <NavLink href="@($"/productos/{prod.Id}")" class="block bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow duration-200 overflow-hidden">
+                                <div class="aspect-square">
+                                    <img src="@(prod.ImagenUrl ?? "https://placehold.co/400x400/F5F5F5/9CA3AF?text=Sin+imagen")"
+                                         alt="@prod.Nombre"
+                                         class="w-full h-full object-contain p-4" />
+                                </div>
+                                <div class="p-4 border-t border-gray-100">
+                                    <h3 class="text-lg font-semibold text-gray-900 truncate">@prod.Nombre</h3>
+                                    <p class="mt-1 text-sm text-gray-600 truncate">
+                                        @prod.Descripcion
+                                    </p>
+                                    <div class="mt-2 flex items-baseline space-x-2">
+                                        <span class="text-base font-medium text-gray-900">
+                                            @((prod.Precio * (1 - prod.Descuento)).ToString("C"))
+                                        </span>
+                                        @if (prod.Descuento > 0m)
+                                        {
+                                            <span class="text-sm text-gray-500 line-through">@prod.Precio.ToString("C")</span>
+                                        }
+                                    </div>
+                                </div>
+                            </NavLink>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<CartModal @ref="cartModalRef" />
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private CartModal cartModalRef;
+    private Producto? producto;
+    private List<Producto> productosRecomendados = new List<Producto>();
+    private int selectedVariacionId;
+    private int cantidad = 1;
+    private string mensajeCarrito = "";
+    private bool stockSuficiente = true;
+    private bool isLoading = true;
+    private bool mostrarDescripcion = false;
+
+    private ProductoVariacion? selectedVariacion =>
+        producto?.Variaciones?.FirstOrDefault(v => v.Id == selectedVariacionId);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        mensajeCarrito = "";
+        cantidad = 1;
+        selectedVariacionId = 0;
+        producto = null;
+        productosRecomendados = new List<Producto>(); 
+        mostrarDescripcion = false;
+
+        await LoadProductAsync();
+
+        if (producto != null)
+        {
+            if (producto.Variaciones != null && producto.Variaciones.Any())
+            {
+                selectedVariacionId = producto.Variaciones.First().Id;
+                CheckStock();
+            }
+            else
+            {
+                stockSuficiente = false;
+            }
+            await LoadRecommendedProductsAsync();
+        }
+
+        isLoading = false;
+    }
+
+    private async Task LoadProductAsync()
+    {
+        try
+        {
+            producto = await DbContext.Productos
+                .Include(p => p.Variaciones)
+                .FirstOrDefaultAsync(p => p.Id == Id);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar el producto: {ex.Message}");
+            producto = null;
+        }
+    }
+
+    private async Task LoadRecommendedProductsAsync()
+    {
+        try
+        {
+            var random = new Random();
+            var count = await DbContext.Productos.CountAsync();
+
+            var numToTake = Math.Min(4, count - 1);
+            if (numToTake <= 0) return;
+
+            var recommendedProducts = new List<Producto>();
+            while (recommendedProducts.Count < numToTake)
+            {
+                var skip = random.Next(0, count);
+                var product = await DbContext.Productos
+                    .Skip(skip)
+                    .Take(1)
+                    .FirstOrDefaultAsync();
+
+                if (product != null && product.Id != Id && !recommendedProducts.Any(p => p.Id == product.Id))
+                {
+                    recommendedProducts.Add(product);
+                }
+            }
+            productosRecomendados = recommendedProducts;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar productos recomendados: {ex.Message}");
+        }
+    }
+
+    private void SelectVariacion(int variacionId)
+    {
+        selectedVariacionId = variacionId;
+        cantidad = 1;
+        CheckStock();
+        mensajeCarrito = "";
+    }
+
+    private void IncrementarCantidad()
+    {
+        if (selectedVariacion != null && cantidad < selectedVariacion.Stock)
+        {
+            cantidad++;
+            CheckStock();
+        }
+    }
+
+    private void DecrementarCantidad()
+    {
+        if (cantidad > 1)
+        {
+            cantidad--;
+            CheckStock();
+        }
+    }
+
+    private void CheckStock()
+    {
+        if (selectedVariacion != null)
+        {
+            stockSuficiente = cantidad <= selectedVariacion.Stock;
+        }
+        else
+        {
+            stockSuficiente = false;
+        }
+    }
+
+    private void ToggleDescripcion()
+    {
+        mostrarDescripcion = !mostrarDescripcion;
+    }
+
+    private async Task AgregarAlCarrito()
+    {
+        mensajeCarrito = "";
+        CheckStock();
+
+        if (!stockSuficiente)
+        {
+            mensajeCarrito = "Error: La cantidad solicitada supera el stock disponible.";
+            return;
+        }
+
+        if (selectedVariacion == null)
+        {
+            mensajeCarrito = "Por favor, seleccione una variación de producto válida.";
+            return;
+        }
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = await UserManager.GetUserAsync(authState.User);
+            if (user == null)
+            {
+                mensajeCarrito = "Debe iniciar sesión para agregar productos al carrito.";
+                return;
+            }
+
+            await CarritoService.AgregarOActualizarItemAsync(user.Id, selectedVariacionId, cantidad);
+            mensajeCarrito = "Producto agregado con éxito al carrito.";
+
+            if (cartModalRef != null)
+            {
+                await cartModalRef.ShowModal();
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeCarrito = $"Ocurrió un error al agregar el producto: {ex.Message}";
+        }
+    }
+}

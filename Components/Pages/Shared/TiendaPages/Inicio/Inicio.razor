@@ -1,27 +1,61 @@
 ﻿@page "/"
+@using System.Timers
 
 <PageTitle>Inicio - Golazo Store</PageTitle>
 
-<section class="hero-bg">
-    <div class="container mx-auto h-full flex items-center relative z-10 px-4">
-        <div class="max-w-2xl hero-content">
-            <div class="text-yellow-400 uppercase text-sm md:text-base font-bold tracking-widest mb-2">
-                CAMBIO DE TEMPORADA 2025/26
+<section class="relative w-full h-screen overflow-hidden flex items-center justify-center">
+    <div class="relative w-full h-full">
+        @for (int i = 0; i < bannerImages.Count; i++)
+        {
+            var index = i;
+            <div class="absolute inset-0 transition-opacity duration-700 ease-in-out @(currentBannerIndex == index ? "opacity-100" : "opacity-0")">
+                <img src="@bannerImages[index].ImageUrl"
+                     alt="@bannerImages[index].AltText"
+                     class="w-full h-full object-cover">
+
+                <div class="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent flex items-center">
+                    <div class="container mx-auto px-4">
+                        <div class="max-w-lg text-white">
+                            <h2 class="text-3xl md:text-5xl font-bold mb-4 animate-fade-in">@bannerImages[index].Title</h2>
+                            <p class="text-lg md:text-xl mb-6 animate-fade-in-delayed">@bannerImages[index].Description</p>
+                            @if (!string.IsNullOrEmpty(bannerImages[index].ButtonText) && !string.IsNullOrEmpty(bannerImages[index].ButtonUrl))
+                            {
+                                <a href="@bannerImages[index].ButtonUrl"
+                                   class="inline-block bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 animate-fade-in-delayed-2">
+                                    @bannerImages[index].ButtonText
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 leading-tight">
-                NUEVA COLECCIÓN<br>2025 - 2026
-            </h1>
-
-            <div class="text-white text-lg md:text-xl font-medium italic mb-6">
-                Lo mejor en equipamiento deportivo
-            </div>
-
-            <a href="#" class="inline-block bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-full transition-transform transform hover:scale-105">
-                Ver colección
-            </a>
-        </div>
+        }
     </div>
+
+    <button @onclick="PreviousBanner"
+            class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-3 rounded-full transition-all duration-300 hover:scale-110">
+        <i class="fas fa-chevron-left text-xl"></i>
+    </button>
+
+    <button @onclick="NextBanner"
+            class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-3 rounded-full transition-all duration-300 hover:scale-110">
+        <i class="fas fa-chevron-right text-xl"></i>
+    </button>
+
+    <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-3">
+        @for (int i = 0; i < bannerImages.Count; i++)
+        {
+            var index = i;
+            <button @onclick="() => GoToBanner(index)"
+                    class="w-4 h-4 rounded-full transition-all duration-300 transform hover:scale-110 @(currentBannerIndex == index ? "bg-yellow-500 shadow-lg" : "bg-white/50 hover:bg-white/75")">
+            </button>
+        }
+    </div>
+
+    <button @onclick="ToggleBannerAutoPlay"
+            class="absolute top-4 right-4 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition-all duration-300 hover:scale-110">
+        <i class="fas @(isBannerAutoPlaying ? "fa-pause" : "fa-play")"></i>
+    </button>
 </section>
 
 <section class="py-16 bg-gray-100">
@@ -165,5 +199,143 @@
 </section>
 
 @code {
+    // Variables del carrusel de banners
+    private List<BannerImage> bannerImages = new();
+    private int currentBannerIndex = 0;
+    private Timer? bannerTimer;
+    private bool isBannerAutoPlaying = true;
+    private int autoPlayInterval = 5000; // 5 segundos
 
+    public class BannerImage
+    {
+        public string ImageUrl { get; set; } = "";
+        public string AltText { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string? ButtonText { get; set; }
+        public string? ButtonUrl { get; set; }
+    }
+
+    protected override void OnInitialized()
+    {
+        // Configurar las imágenes de banner usando las que tienes en tu proyecto
+        bannerImages = new List<BannerImage>
+        {
+            new BannerImage
+            {
+                ImageUrl = "imagenes/banners/banner2.jpg",
+                AltText = "Nuevas Camisetas",
+                Title = "¡Nuevas Camisetas!",
+                Description = "Descubre las últimas camisetas de tus equipos favoritos",
+                ButtonText = "Ver Camisetas",
+                ButtonUrl = "/camisetas"
+            },
+            new BannerImage
+            {
+                ImageUrl = "imagenes/banners/banner4.jpg",
+                AltText = "Botines Profesionales",
+                Title = "Botines Profesionales",
+                Description = "La mejor calidad para elevar tu juego al siguiente nivel",
+                ButtonText = "Ver Botines",
+                ButtonUrl = "/botines"
+            },
+            new BannerImage
+            {
+                ImageUrl = "imagenes/banners/banner3.jpg",
+                AltText = "Guantes de Portero",
+                Title = "Guantes de Portero",
+                Description = "Protección y agarre excepcional para los mejores arqueros",
+                ButtonText = "Ver Guantes",
+                ButtonUrl = "/guantes"
+            },
+            new BannerImage
+            {
+                ImageUrl = "imagenes/banners/banner1.jpg",
+                AltText = "Accesorios",
+                Title = "Accesorios Deportivos",
+                Description = "Completa tu equipamiento con los mejores accesorios",
+                ButtonText = "Ver Accesorios",
+                ButtonUrl = "/accesorios"
+            },
+            new BannerImage
+            {
+                ImageUrl = "imagenes/banners/banner5.jpg",
+                AltText = "Ofertas Especiales",
+                Title = "Ofertas Especiales",
+                Description = "No te pierdas nuestras increíbles promociones",
+                ButtonText = "Ver Ofertas",
+                ButtonUrl = "/novedades"
+            },
+
+            new BannerImage
+            {
+                ImageUrl = "imagenes/banners/banner6.webp",
+                AltText = "Ofertas Especiales",
+                Title = "Ofertas Especiales",
+                Description = "No te pierdas nuestras increíbles promociones",
+                ButtonText = "Ver Ofertas",
+                ButtonUrl = "/novedades"
+            }
+        };
+
+        StartBannerAutoPlay();
+    }
+
+    // Métodos del carrusel de banners
+    private void StartBannerAutoPlay()
+    {
+        if (isBannerAutoPlaying && bannerImages.Count > 1)
+        {
+            bannerTimer = new Timer(autoPlayInterval);
+            bannerTimer.Elapsed += OnBannerTimerElapsed;
+            bannerTimer.AutoReset = true;
+            bannerTimer.Enabled = true;
+        }
+    }
+
+    private async void OnBannerTimerElapsed(object? sender, ElapsedEventArgs e)
+    {
+        await InvokeAsync(() =>
+        {
+            NextBanner();
+            StateHasChanged();
+        });
+    }
+
+    private void NextBanner()
+    {
+        currentBannerIndex = (currentBannerIndex + 1) % bannerImages.Count;
+    }
+
+    private void PreviousBanner()
+    {
+        currentBannerIndex = currentBannerIndex == 0 ? bannerImages.Count - 1 : currentBannerIndex - 1;
+    }
+
+    private void GoToBanner(int index)
+    {
+        currentBannerIndex = index;
+    }
+
+    private void ToggleBannerAutoPlay()
+    {
+        isBannerAutoPlaying = !isBannerAutoPlaying;
+
+        if (isBannerAutoPlaying)
+        {
+            StartBannerAutoPlay();
+        }
+        else
+        {
+            bannerTimer?.Stop();
+            bannerTimer?.Dispose();
+            bannerTimer = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        bannerTimer?.Stop();
+        bannerTimer?.Dispose();
+    }
 }

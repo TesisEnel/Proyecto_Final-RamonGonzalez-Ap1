@@ -1,20 +1,146 @@
 ﻿@page "/camisetas"
+@rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+
+@using Proyecto_Final.Data
+@using Proyecto_Final.Models.Producto
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject ILogger<Index> Logger
 
 <PageTitle>Camisetas - Golazo Store</PageTitle>
 
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">Colección de Camisetas</h1>
+<div class="pt-16 min-h-screen bg-white">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-5xl font-bold text-center mb-8 text-gray-800">Camisetas</h1>
 
-    <p class="text-lg text-gray-700 text-center mb-8">
-        Explora las últimas camisetas de tus equipos y selecciones favoritas.
-        ¡Encuentra la tuya hoy!
-    </p>
+        <p class="text-lg text-gray-700 text-center mb-8">
+            Revisa las camisetas disponibles de esta temporada, con diseños únicos. Disponibles en nuestras tiendas en Pantini y Arroyo Hondo, Santo Domingo.
+        </p>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        
+
+        <!-- Filtros y ordenamiento -->
+        <div class="flex flex-col lg:flex-row justify-between items-center mb-5 bg-white p-4 rounded-lg shadow-sm">
+            <div class="flex items-center mb-4 lg:mb-0">
+                <i class="fas fa-filter mr-2 text-gray-600"></i>
+                <span class="text-gray-700 font-medium">Filtros</span>
+            </div>
+            <div class="flex items-center">
+                <span class="text-gray-700 mr-3">Ordenar por:</span>
+                <select class="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                    <option>Fecha: reciente a antigua</option>
+                    <option>Precio: menor a mayor</option>
+                    <option>Precio: mayor a menor</option>
+                    <option>Nombre: A-Z</option>
+                </select>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center py-12">
+                <p class="text-xl text-gray-700">Cargando camisetas...</p>
+                <div class="mt-4 animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+            </div>
+        }
+        else if (errorMessage != null)
+        {
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <strong class="font-bold">Error:</strong>
+                <span class="block sm:inline">@errorMessage</span>
+            </div>
+        }
+        else if (!productos.Any())
+        {
+            <div class="text-center py-12">
+                <p class="text-xl text-gray-700">No se encontraron camisetas en esta categoría.</p>
+                <p class="text-md text-gray-500">¡Vuelve pronto, estamos añadiendo nuevos productos!</p>
+            </div>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                @foreach (var producto in productos)
+                {
+                    <a href="/productos/@producto.Id" class="block bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100">
+                        <div class="relative w-full h-64 overflow-hidden p-4 flex items-center justify-center bg-gray-50">
+                            <img src="@producto.ImagenUrl" alt="@producto.Nombre" class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300" onerror="this.onerror=null;this.src='https://placehold.co/400x400/E0E0E0/6C757D?text=Imagen+no+disponible';" />
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-lg font-semibold text-gray-900 truncate mb-1">@producto.Nombre</h3>
+                            <p class="text-gray-600 text-sm mb-3">@producto.Categoria</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <span class="text-xl font-bold text-gray-900">@producto.Precio.ToString("C")</span>
+                                    @if (producto.Descuento > 0)
+                                    {
+                                        <span class="ml-2 text-md text-red-500 line-through">
+                                            @((producto.Precio / (1 - producto.Descuento)).ToString("C"))
+                                        </span>
+                                    }
+                                </div>
+                                @if (producto.Descuento > 0)
+                                {
+                                    <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                        @((producto.Descuento * 100).ToString("0"))% OFF
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
     </div>
 </div>
 
 @code {
+    private List<Producto> productos = new List<Producto>();
+    private bool isLoading = true;
+    private string? errorMessage;
 
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                const header = document.getElementById('main-header');
+                if (header) {
+                    header.classList.add('category-header');
+                    header.style.position = 'fixed';
+                    header.style.top = '40px';
+                    header.style.backgroundColor = '#1A1A1A';
+                    header.style.backdropFilter = 'none';
+                    header.style.webkitBackdropFilter = 'none';
+                }
+            ");
+        }
+    }
+
+    private async Task LoadProducts()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            productos = await DbContext.Productos
+                .Where(p => p.Categoria == "Camisetas")
+                .Include(p => p.Valoraciones)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar productos de la categoría Camisetas.");
+            errorMessage = "Error al cargar los productos. Por favor, intente de nuevo más tarde.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
 }
