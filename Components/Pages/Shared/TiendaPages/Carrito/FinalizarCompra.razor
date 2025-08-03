@@ -10,6 +10,8 @@
 @using Proyecto_Final.Data
 @using Proyecto_Final.Models.Carrito
 @using Proyecto_Final.Models.Usuario
+@using Proyecto_Final.Models.Pedidos
+@using Proyecto_Final.Models.Producto
 @using Proyecto_Final.Services
 @inject ICarritoService CarritoService
 @inject IAnonymousCartService AnonymousCartService
@@ -19,18 +21,12 @@
 @inject ApplicationDbContext DbContext
 @inject UserManager<ApplicationUser> UserManager
 
-<PageTitle>Finalizar Compra - Golazo Store</PageTitle>
-
 <div class="container mx-auto px-4 py-8 max-w-7xl">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-        <!-- Columna principal del formulario de pago -->
         <div class="lg:col-span-2">
             <div class="bg-white p-8 rounded-xl shadow-md border border-gray-200">
                 <h1 class="text-3xl font-bold mb-2 text-gray-800">Finalizar Compra</h1>
                 <p class="text-gray-500 mb-8">Todas las transacciones son seguras y están encriptadas.</p>
-
-                <!-- Imagenes de tarjetas de crédito con URLs -->
                 <div class="flex items-center gap-2 mb-6">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" class="h-6 object-contain" />
                     <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/MasterCard_Logo.svg" alt="Mastercard" class="h-6 object-contain" />
@@ -41,6 +37,19 @@
                 {
                     <div class="flex justify-center items-center h-64">
                         <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-500"></div>
+                    </div>
+                }
+                else if (pagoExitoso)
+                {
+                    <div class="flex items-center justify-center p-8 text-center">
+                        <div>
+                            <svg class="mx-auto h-24 w-24 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <h2 class="text-3xl font-bold text-gray-800 mt-4 mb-2">¡Pago Exitoso!</h2>
+                            <p class="text-gray-600 mb-6">Tu pedido ha sido procesado correctamente. ¡Gracias por tu compra!</p>
+                            <a href="/" class="bg-black hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300 inline-block">Continuar comprando</a>
+                        </div>
                     </div>
                 }
                 else
@@ -54,7 +63,6 @@
 
                     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
                         <DataAnnotationsValidator />
-                        <!-- Sección de Tarjeta de Crédito -->
                         <h2 class="text-2xl font-bold mb-4 text-gray-800">Tarjeta de crédito</h2>
                         <div class="grid grid-cols-1 gap-6 mb-8">
                             <div>
@@ -84,10 +92,8 @@
                             </div>
                         </div>
 
-                        <!-- Sección de Dirección de facturación -->
                         <h2 class="text-2xl font-bold mb-4 text-gray-800">Dirección de facturación</h2>
 
-                        <!-- Checkbox para usar la dirección de envío -->
                         <div class="flex items-center mb-6">
                             <InputCheckbox id="useShippingAsBilling" @bind-Value="useShippingAsBilling" />
                             <label for="useShippingAsBilling" class="ml-2 block text-sm font-medium text-gray-700">
@@ -95,7 +101,6 @@
                             </label>
                         </div>
 
-                        <!-- Contenido que se despliega/oculta -->
                         @if (!useShippingAsBilling)
                         {
                             <div class="space-y-6">
@@ -121,7 +126,6 @@
                                     <InputText id="ciudad" @bind-Value="Input.Ciudad" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" placeholder="Ej. Santiago de los Caballeros" disabled="@useShippingAsBilling" />
                                     <ValidationMessage For="@(() => Input.Ciudad)" class="text-red-500 text-sm mt-1" />
                                 </div>
-                                <!-- Campo de Provincia (Estado) -->
                                 <div>
                                     <label for="estado" class="block text-sm font-medium text-gray-700 mb-1">Provincia *</label>
                                     <InputSelect id="estado" @bind-Value="Input.Estado" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" disabled="@useShippingAsBilling">
@@ -154,7 +158,6 @@
                             </div>
                         }
 
-                        <!-- Botón de pago -->
                         <div class="mt-8">
                             <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-4 rounded-lg transition-colors duration-300">
                                 Pagar ahora
@@ -165,7 +168,6 @@
             </div>
         </div>
 
-        <!-- Columna lateral del resumen del pedido -->
         <div class="lg:col-span-1">
             <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200 sticky top-4">
                 <h2 class="text-2xl font-bold mb-4 text-gray-800">Resumen del Pedido</h2>
@@ -231,6 +233,7 @@
     private bool isLoggedIn = false;
     private DireccionEnvio? defaultAddress;
     private ApplicationUser? currentUser;
+    private bool pagoExitoso = false; // Nueva variable para controlar el mensaje de éxito
 
     private bool useShippingAsBilling
     {
@@ -247,7 +250,7 @@
 
     private readonly List<string> provinciasRD = new List<string>
     {
-        "Azua", "Bahoruco", "Barahona", "Dajabón", "Distrito Nacional",
+        "Azua", "Bahoruco", "Barahóna", "Dajabón", "Distrito Nacional",
         "Duarte", "Elías Piña", "El Seibo", "Espaillat", "Hato Mayor",
         "Hermanas Mirabal", "Independencia", "La Altagracia", "La Romana",
         "La Vega", "María Trinidad Sánchez", "Monseñor Nouel", "Monte Cristi",
@@ -288,6 +291,11 @@
             {
                 carritoItems = await AnonymousCartService.GetAnonymousCartItemsAsync();
             }
+
+            if (carritoItems == null || !carritoItems.Any())
+            {
+                errorMessage = "Tu carrito está vacío. Por favor, añade productos antes de finalizar la compra.";
+            }
         }
         catch (Exception ex)
         {
@@ -307,8 +315,8 @@
         if (string.IsNullOrEmpty(usuarioId)) return;
 
         defaultAddress = await DbContext.DireccionesEnvio
-            .Where(d => d.UsuarioId == usuarioId && d.EsPrincipal)
-            .FirstOrDefaultAsync();
+          .Where(d => d.UsuarioId == usuarioId && d.EsPrincipal)
+          .FirstOrDefaultAsync();
 
         currentUser = await UserManager.FindByIdAsync(usuarioId);
     }
@@ -339,10 +347,103 @@
         StateHasChanged();
     }
 
-    private void HandleValidSubmit()
+    private async Task HandleValidSubmit()
     {
-        Logger.LogInformation("Formulario de compra enviado. Información: {@Input}", Input);
-        NavManager.NavigateTo("/confirmacion-compra");
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            if (carritoItems == null || !carritoItems.Any())
+            {
+                errorMessage = "Tu carrito está vacío. No puedes finalizar la compra.";
+                return;
+            }
+
+            // Simulación de un pago exitoso
+            await Task.Delay(1500);
+
+            await FinalizarPedidoAsync();
+
+            if (!isLoggedIn)
+            {
+                await AnonymousCartService.ClearAnonymousCartAsync();
+            }
+
+            // Establece la variable para mostrar el mensaje de éxito
+            pagoExitoso = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al finalizar el pedido.");
+            errorMessage = $"Ocurrió un error al procesar tu compra: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task FinalizarPedidoAsync()
+    {
+        if (string.IsNullOrEmpty(usuarioId))
+        {
+            throw new InvalidOperationException("El usuario no está autenticado.");
+        }
+
+        var nuevoPedido = new Pedido
+        {
+            UsuarioId = usuarioId,
+            FechaPedido = DateTime.UtcNow,
+            Total = subtotal,
+            Estado = "Procesando",
+            NombreEnvio = Input.Nombre,
+            ApellidoEnvio = Input.Apellido,
+            CalleEnvio = Input.Calle,
+            CiudadEnvio = Input.Ciudad,
+            EstadoEnvio = Input.Estado,
+            CodigoPostalEnvio = Input.CodigoPostal,
+            PaisEnvio = Input.Pais,
+            TelefonoEnvio = Input.Telefono
+        };
+
+        var detallesPedido = new List<DetallePedido>();
+        foreach (var item in carritoItems!)
+        {
+            var productoVariacion = await DbContext.ProductoVariaciones
+              .FirstOrDefaultAsync(pv => pv.Id == item.ProductoVariacionId);
+
+            if (productoVariacion == null || productoVariacion.Stock < item.Cantidad)
+            {
+                throw new InvalidOperationException($"Stock insuficiente para el producto {item.Producto.Nombre} ({item.ProductoVariacion.ValorAtributo}).");
+            }
+
+            detallesPedido.Add(new DetallePedido
+            {
+                Pedido = nuevoPedido,
+                ProductoId = item.ProductoId,
+                Cantidad = item.Cantidad,
+                PrecioUnitario = item.Producto.Precio * (1 - item.Producto.Descuento)
+            });
+
+            productoVariacion.Stock -= item.Cantidad;
+        }
+
+        nuevoPedido.Detalles = detallesPedido;
+        DbContext.Pedidos.Add(nuevoPedido);
+
+        var carritoDelUsuario = await DbContext.Carritos
+      .Include(c => c.Items)
+      .FirstOrDefaultAsync(c => c.UsuarioId == usuarioId);
+
+        if (carritoDelUsuario != null)
+        {
+            DbContext.CarritoItems.RemoveRange(carritoDelUsuario.Items);
+        }
+
+        await DbContext.SaveChangesAsync();
+        Logger.LogInformation($"Pedido {nuevoPedido.Id} creado exitosamente para el usuario {usuarioId}.");
     }
 
     private class InputModel
