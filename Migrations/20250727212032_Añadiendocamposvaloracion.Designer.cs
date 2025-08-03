@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Proyecto_Final.Data;
 
@@ -11,9 +12,11 @@ using Proyecto_Final.Data;
 namespace Proyecto_Final.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250727212032_Añadiendocamposvaloracion")]
+    partial class Añadiendocamposvaloracion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -165,15 +168,11 @@ namespace Proyecto_Final.Migrations
 
                     b.Property<string>("Estado")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("Pendiente");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime>("FechaPedido")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<decimal>("Total")
                         .HasColumnType("decimal(18,2)");
@@ -183,6 +182,8 @@ namespace Proyecto_Final.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FechaPedido");
 
                     b.HasIndex("UsuarioId");
 
@@ -198,14 +199,10 @@ namespace Proyecto_Final.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Cantidad")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("FechaAgregado")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("ProductoId")
                         .HasColumnType("int");
@@ -232,9 +229,7 @@ namespace Proyecto_Final.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Cantidad")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
+                        .HasColumnType("int");
 
                     b.Property<int>("PedidoId")
                         .HasColumnType("int");
@@ -245,16 +240,11 @@ namespace Proyecto_Final.Migrations
                     b.Property<int>("ProductoId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ProductoId1")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("PedidoId");
 
                     b.HasIndex("ProductoId");
-
-                    b.HasIndex("ProductoId1");
 
                     b.ToTable("DetallesPedido");
                 });
@@ -273,11 +263,10 @@ namespace Proyecto_Final.Migrations
 
                     b.Property<string>("Descripcion")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("Descuento")
-                        .HasColumnType("decimal(3,2)");
+                    b.Property<int>("Descuento")
+                        .HasColumnType("int");
 
                     b.Property<bool>("EsNovedad")
                         .HasColumnType("bit");
@@ -287,19 +276,21 @@ namespace Proyecto_Final.Migrations
 
                     b.Property<string>("ImagenUrl")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<decimal>("Precio")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("ValoracionPromedio")
-                        .HasColumnType("decimal(3,1)");
+                    b.Property<int>("Stock")
+                        .HasColumnType("int");
+
+                    b.Property<double>("ValoracionPromedio")
+                        .HasColumnType("float");
 
                     b.HasKey("Id");
 
@@ -318,19 +309,17 @@ namespace Proyecto_Final.Migrations
 
                     b.Property<string>("Comentario")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
-                    b.Property<DateTime>("FechaCreacion")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("ProductoId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("Puntuacion")
-                        .HasColumnType("decimal(3,1)");
+                    b.Property<int>("Puntuacion")
+                        .HasColumnType("int");
 
                     b.Property<string>("UsuarioId")
                         .IsRequired()
@@ -353,14 +342,14 @@ namespace Proyecto_Final.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
-                    b.Property<string>("Apellido")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Direccion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -370,20 +359,13 @@ namespace Proyecto_Final.Migrations
                         .HasColumnType("bit");
 
                     b.Property<DateTime>("FechaRegistro")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("NombreCompleto")
                         .IsRequired()
@@ -440,13 +422,13 @@ namespace Proyecto_Final.Migrations
 
                     b.Property<string>("Calle")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Ciudad")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("CodigoPostal")
                         .IsRequired()
@@ -458,13 +440,13 @@ namespace Proyecto_Final.Migrations
 
                     b.Property<string>("Estado")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Pais")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("UsuarioId")
                         .IsRequired()
@@ -567,14 +549,10 @@ namespace Proyecto_Final.Migrations
                         .IsRequired();
 
                     b.HasOne("Proyecto_Final.Models.Producto.Producto", "Producto")
-                        .WithMany()
+                        .WithMany("DetallesPedido")
                         .HasForeignKey("ProductoId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("Proyecto_Final.Models.Producto.Producto", null)
-                        .WithMany("DetallesPedido")
-                        .HasForeignKey("ProductoId1");
 
                     b.Navigation("Pedido");
 
@@ -592,7 +570,7 @@ namespace Proyecto_Final.Migrations
                     b.HasOne("Proyecto_Final.Models.Usuario.ApplicationUser", "Usuario")
                         .WithMany("Valoraciones")
                         .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Producto");

@@ -12,3 +12,13 @@
 
     console.log("Sitio cargado correctamente");
 });
+
+
+function createAccount() {
+    alert("Funcionalidad de crear cuenta aún no implementada.");
+}
+
+document.getElementById("loginForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+    alert("Iniciar sesión con: " + document.getElementById("email").value);
+});

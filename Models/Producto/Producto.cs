@@ -1,39 +1,39 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Proyecto_Final.Models.Producto
 {
     public class Producto
     {
-        [Key]
         public int Id { get; set; }
 
-        [Required, MaxLength(100)]
+        [Required, MaxLength(200)]
         public string Nombre { get; set; }
 
+        [MaxLength(1000)]
         public string Descripcion { get; set; }
 
-        [Required, Range(0, 9999.99)]
+        [Column(TypeName = "decimal(18,2)")]
         public decimal Precio { get; set; }
 
-        [Range(0, 100)]
-        public int Descuento { get; set; }
+        [Column(TypeName = "decimal(3,1)")]
+        public decimal ValoracionPromedio { get; set; }
+
+        [Column(TypeName = "decimal(3,2)")]
+        public decimal Descuento { get; set; } = 0;
 
         [Required]
-        public string Categoria { get; set; } // "Camisetas", "Botines", etc.
+        public string Categoria { get; set; }
 
         public string ImagenUrl { get; set; }
-
-        [Required]
-        public int Stock { get; set; }
-
         public bool EsNovedad { get; set; }
-
-        public double ValoracionPromedio { get; set; }
-
-        public List<Valoracion> Valoraciones { get; set; } = new();
-
-        public List<DetallePedido> DetallesPedido { get; set; } = new();
-
         public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+
+        public bool TieneVariaciones { get; set; } = false; // Indica si este producto tiene variaciones (tallas, colores, etc.)
+        public List<ProductoVariacion> Variaciones { get; set; } = new(); 
+        public List<DetallePedido> DetallesPedido { get; set; } = new();
+        public List<Valoracion> Valoraciones { get; set; } = new();
     }
 }

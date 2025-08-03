@@ -19,13 +19,12 @@ namespace Proyecto_Final.Services
             _logger = logger;
         }
 
-        // Obtener productos destacados para la página de inicio
         public async Task<List<Producto>> ObtenerProductosDestacados(int cantidad)
         {
             try
             {
                 return await _context.Productos
-                    .Where(p => p.EsNovedad) // Usando EsNovedad en lugar de EsDestacado
+                    .Where(p => p.EsNovedad) 
                     .Include(p => p.DetallesPedido)
                     .Include(p => p.Valoraciones)
                     .OrderByDescending(p => p.FechaCreacion)
@@ -39,7 +38,6 @@ namespace Proyecto_Final.Services
             }
         }
 
-        // Obtener un producto por su ID con relaciones
         public async Task<Producto?> ObtenerProductoPorId(int id)
         {
             try
@@ -57,7 +55,6 @@ namespace Proyecto_Final.Services
             }
         }
 
-        // Obtener productos por categoría
         public async Task<List<Producto>> ObtenerProductosPorCategoria(string categoria, int pagina = 1, int cantidadPorPagina = 10)
         {
             try
@@ -77,7 +74,6 @@ namespace Proyecto_Final.Services
             }
         }
 
-        // Buscar productos por término de búsqueda
         public async Task<List<Producto>> BuscarProductos(string terminoBusqueda, int pagina = 1, int cantidadPorPagina = 10)
         {
             try
@@ -102,7 +98,6 @@ namespace Proyecto_Final.Services
             }
         }
 
-        // Obtener productos relacionados (misma categoría)
         public async Task<List<Producto>> ObtenerProductosRelacionados(int productoId, int cantidad = 4)
         {
             try
@@ -125,7 +120,6 @@ namespace Proyecto_Final.Services
             }
         }
 
-        // Actualizar valoración promedio de un producto
         public async Task ActualizarValoracionPromedio(int productoId)
         {
             try
@@ -137,7 +131,7 @@ namespace Proyecto_Final.Services
                 if (producto != null)
                 {
                     producto.ValoracionPromedio = producto.Valoraciones.Any() ?
-                        producto.Valoraciones.Average(v => v.Puntuacion) : 0;
+                        (decimal)producto.Valoraciones.Average(v => v.Puntuacion) : 0m;
                     await _context.SaveChangesAsync();
                 }
             }
@@ -147,7 +141,6 @@ namespace Proyecto_Final.Services
             }
         }
 
-        // Obtener productos más vendidos
         public async Task<List<Producto>> ObtenerProductosMasVendidos(int cantidad)
         {
             try
@@ -166,7 +159,6 @@ namespace Proyecto_Final.Services
             }
         }
 
-        // Obtener productos en oferta (con descuento)
         public async Task<List<Producto>> ObtenerProductosEnOferta(int cantidad)
         {
             try
@@ -185,7 +177,6 @@ namespace Proyecto_Final.Services
             }
         }
 
-        // Métodos administrativos
         public async Task<bool> CrearProducto(Producto producto)
         {
             try
@@ -222,8 +213,6 @@ namespace Proyecto_Final.Services
             {
                 var producto = await _context.Productos.FindAsync(productoId);
                 if (producto == null) return false;
-
-                // Aquí podrías agregar un campo "Activo" en tu modelo si necesitas desactivar en lugar de eliminar
                 _context.Productos.Remove(producto);
                 await _context.SaveChangesAsync();
                 return true;

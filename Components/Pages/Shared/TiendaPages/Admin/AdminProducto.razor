@@ -1,0 +1,190 @@
+﻿@page "/admin/productos"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authorization
+@using Proyecto_Final.Data
+@using Proyecto_Final.Models.Producto
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavigationManager
+@inject ILogger<AdminProducto> Logger
+
+<PageTitle>Administrar Productos - Golazo Store</PageTitle>
+
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">Administración de Productos</h1>
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <strong class="font-bold">Éxito:</strong>
+            <span class="block sm:inline">@successMessage</span>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <strong class="font-bold">Error:</strong>
+            <span class="block sm:inline">@errorMessage</span>
+        </div>
+    }
+
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800">Crear Nuevo Producto</h2>
+
+        <EditForm Model="NuevoProducto" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-red-600 mb-4" />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre del Producto *</label>
+                    <InputText id="nombre" @bind-Value="NuevoProducto.Nombre" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500" />
+                    <ValidationMessage For="() => NuevoProducto.Nombre" class="text-red-500 text-sm" />
+                </div>
+                <div>
+                    <label for="categoria" class="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
+                    <InputSelect id="categoria" @bind-Value="NuevoProducto.Categoria" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                        <option value="">Selecciona una categoría</option>
+                        <option value="Camisetas">Camisetas</option>
+                        <option value="Botines">Botines</option>
+                        <option value="Guantes">Guantes</option>
+                        <option value="Accesorios">Accesorios</option>
+                    </InputSelect>
+                    <ValidationMessage For="() => NuevoProducto.Categoria" class="text-red-500 text-sm" />
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1">Descripción *</label>
+                <InputTextArea id="descripcion" @bind-Value="NuevoProducto.Descripcion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500 h-24" />
+                <ValidationMessage For="() => NuevoProducto.Descripcion" class="text-red-500 text-sm" />
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label for="precio" class="block text-sm font-medium text-gray-700 mb-1">Precio Base *</label>
+                    <InputNumber id="precio" @bind-Value="NuevoProducto.Precio" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500" />
+                    <ValidationMessage For="() => NuevoProducto.Precio" class="text-red-500 text-sm" />
+                </div>
+                <div>
+                    <label for="imagenUrl" class="block text-sm font-medium text-gray-700 mb-1">URL de Imagen (Opcional)</label>
+                    <InputText id="imagenUrl" @bind-Value="NuevoProducto.ImagenUrl" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500" placeholder="https://ejemplo.com/imagen.jpg" />
+                    <ValidationMessage For="() => NuevoProducto.ImagenUrl" class="text-red-500 text-sm" />
+                </div>
+            </div>
+
+            <div class="flex items-center mb-6">
+                <InputCheckbox id="esNovedad" @bind-Value="NuevoProducto.EsNovedad" class="mr-2 h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded" />
+                <label for="esNovedad" class="text-sm font-medium text-gray-700">Marcar como Novedad</label>
+            </div>
+
+            <div class="flex items-center mb-6">
+                <InputCheckbox id="tieneVariaciones" @bind-Value="NuevoProducto.TieneVariaciones" class="mr-2 h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded" />
+                <label for="tieneVariaciones" class="text-sm font-medium text-gray-700">Este producto tiene variaciones (tallas, colores, etc.)</label>
+            </div>
+
+            @if (NuevoProducto.TieneVariaciones)
+            {
+                <h3 class="text-xl font-bold mb-4 text-gray-800">Detalles de Variaciones del Producto</h3>
+                @if (NuevoProducto.Variaciones.Count == 0)
+                {
+                    <p class="text-gray-600 mb-4">Añade al menos una variación para este producto.</p>
+                }
+
+                @foreach (var variacion in NuevoProducto.Variaciones)
+                {
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 bg-gray-50 p-4 rounded-md mb-4 border border-gray-200">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo Atributo *</label>
+                            <InputText @bind-Value="variacion.TipoAtributo" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Ej: Talla" />
+                            <ValidationMessage For="() => variacion.TipoAtributo" class="text-red-500 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Valor Atributo *</label>
+                            <InputText @bind-Value="variacion.ValorAtributo" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Ej: M, Rojo" />
+                            <ValidationMessage For="() => variacion.ValorAtributo" class="text-red-500 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Stock *</label>
+                            <InputNumber @bind-Value="variacion.Stock" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                            <ValidationMessage For="() => variacion.Stock" class="text-red-500 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Precio Adicional (Opcional)</label>
+                            <InputNumber @bind-Value="variacion.PrecioAdicional" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                            <ValidationMessage For="() => variacion.PrecioAdicional" class="text-red-500 text-sm" />
+                        </div>
+                        <div class="flex items-end">
+                            <button type="button" @onclick="() => RemoverVariacion(variacion)" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300">
+                                Eliminar
+                            </button>
+                        </div>
+                    </div>
+                }
+                <button type="button" @onclick="AñadirVariacion" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300 mt-2">
+                    + Añadir Variación
+                </button>
+            }
+
+            <div class="mt-8 text-right">
+                <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-lg transition-colors duration-300">
+                    Crear Producto
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private Producto NuevoProducto { get; set; } = new Producto();
+    private string? successMessage;
+    private string? errorMessage;
+
+    private void AñadirVariacion()
+    {
+        NuevoProducto.Variaciones.Add(new ProductoVariacion());
+    }
+
+    private void RemoverVariacion(ProductoVariacion variacion)
+    {
+        NuevoProducto.Variaciones.Remove(variacion);
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        successMessage = string.Empty;
+        errorMessage = string.Empty;
+
+        try
+        {
+            if (NuevoProducto.TieneVariaciones && (!NuevoProducto.Variaciones?.Any() ?? true))
+            {
+                errorMessage = "Si el producto tiene variaciones, debe añadir al menos una variación.";
+                return;
+            }
+
+            if (!NuevoProducto.TieneVariaciones)
+            {
+                NuevoProducto.Variaciones.Clear();
+            }
+
+            DbContext.Productos.Add(NuevoProducto);
+            await DbContext.SaveChangesAsync();
+
+            successMessage = $"Producto '{NuevoProducto.Nombre}' creado exitosamente.";
+            Logger.LogInformation("Producto creado: {ProductoNombre}", NuevoProducto.Nombre);
+
+            NuevoProducto = new Producto();
+            NuevoProducto.Variaciones = new List<ProductoVariacion>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al crear el producto: {ex.Message}";
+            Logger.LogError(ex, "Error al crear producto.");
+        }
+    }
+}

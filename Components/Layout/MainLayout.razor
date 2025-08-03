@@ -1,4 +1,11 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using Proyecto_Final.Components.Account
+@inject IdentityRedirectManager RedirectManager
+@inject NavigationManager NavManager
+
+@rendermode InteractiveServer
 
 <header class="bg-[#1A1A1A] text-white shadow-lg">
     <div class="container mx-auto px-4">
@@ -12,30 +19,43 @@
                     <NavLink href="/botines" class="font-medium hover:text-yellow-400">Botines</NavLink>
                     <NavLink href="/guantes" class="font-medium hover:text-yellow-400">Guantes</NavLink>
                     <NavLink href="/accesorios" class="font-medium hover:text-yellow-400">Accesorios</NavLink>
+
+                    <AuthorizeView Roles="Admin">
+                        <NavLink href="/admin/productos" class="font-medium hover:text-yellow-400">Admin Productos</NavLink>
+                        <NavLink href="/admin/pedidos" class="font-medium hover:text-yellow-400">Admin Pedidos</NavLink>
+                    </AuthorizeView>
                 </div>
             </div>
 
             <div class="flex items-center space-x-4 ml-auto mr-4">
-                <div class="relative w-full md:w-96 mb-4 md:mb-0 hidden md:block">
+                <div class="relative w-full md:w-96 mb-4 md:mb-0">
                     <input type="text" placeholder="Buscar productos..." class="w-full py-2 px-4 rounded-full text-gray-800 focus:outline-none">
                     <button class="absolute right-0 top-0 bg-yellow-500 text-black py-2 px-4 rounded-r-full hover:bg-yellow-600 transition-colors">
                         <i class="fas fa-search"></i>
                     </button>
                 </div>
-
-                <a href="#" class="hover:text-yellow-400 relative">
+                <NavLink href="/carrito" class="hover:text-yellow-400 relative">
                     <i class="fas fa-shopping-cart text-xl"></i>
                     <span class="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">3</span>
-                </a>
-                <a href="#" class="hover:text-yellow-400"><i class="fas fa-user text-xl"></i></a>
+                </NavLink>
+                <NavLink href="/perfil" class="hover:text-yellow-400"><i class="fas fa-user text-xl"></i></NavLink>
+                <AuthorizeView>
+                    <Authorized>
+                        <form action="Account/Logout" method="post">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="ReturnUrl" value="@NavManager.ToBaseRelativePath(NavManager.Uri)" />
+                            <button type="submit" class="hover:text-yellow-400 text-xl focus:outline-none">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                        </form>
+                    </Authorized>
+                </AuthorizeView>
                 <a href="#" class="md:hidden hover:text-yellow-400"><i class="fas fa-search text-xl"></i></a>
             </div>
         </div>
     </div>
 </header>
 
-@* Esta nav puede ser para submenús o un espacio en blanco si no lo usas.
-   Si no la necesitas, puedes eliminarla. *@
 <nav class="bg-white shadow-md">
     <div class="container mx-auto px-4">
     </div>
@@ -113,5 +133,10 @@
 </a>
 
 @code {
+    private bool showSearchBar = false; 
 
+    private void ToggleSearchBar()
+    {
+        showSearchBar = !showSearchBar;
+    }
 }

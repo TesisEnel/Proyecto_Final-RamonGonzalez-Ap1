@@ -1,6 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Proyecto_Final.Models.Usuario;
+using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Proyecto_Final.Models.Usuario;
 
 namespace Proyecto_Final.Models.Producto
 {
@@ -12,21 +13,20 @@ namespace Proyecto_Final.Models.Producto
         [Required]
         public string UsuarioId { get; set; }
 
-        [ForeignKey("UsuarioId")]
-        public ApplicationUser Usuario { get; set; }
-
         [Required]
         public int ProductoId { get; set; }
 
-        [ForeignKey("ProductoId")]
-        public Producto Producto { get; set; }
+        [Range(1, 5)]
+        public decimal Puntuacion { get; set; }
 
-        [Required, Range(1, 5)]
-        public int Puntuacion { get; set; }
-
-        [MaxLength(500)]
+        [MaxLength(1000)]
         public string Comentario { get; set; }
 
-        public DateTime Fecha { get; set; } = DateTime.UtcNow;
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+
+        // Relaciones
+        public virtual ApplicationUser Usuario { get; set; }
+        public virtual Producto Producto { get; set; }
     }
 }
