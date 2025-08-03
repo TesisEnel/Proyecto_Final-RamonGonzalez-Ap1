@@ -1,0 +1,301 @@
+﻿@page "/admin/pedidos"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Proyecto_Final.Data
+@using Proyecto_Final.Models.Pedidos
+@using Proyecto_Final.Models.Usuario
+@inject ApplicationDbContext DbContext
+@inject ILogger<AdminPedidos> Logger
+@inject NavigationManager NavManager
+
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Administración de Pedidos - Golazo Store</PageTitle>
+
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    <div class="bg-white p-8 rounded-xl shadow-md border border-gray-200">
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">Administración de Pedidos</h1>
+
+        @if (isLoading)
+        {
+            <div class="flex flex-col items-center justify-center py-20">
+                <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-500"></div>
+                <p class="mt-4 text-gray-600 font-medium">Cargando pedidos...</p>
+            </div>
+        }
+        else if (pedidos == null || !pedidos.Any())
+        {
+            <div class="text-center text-gray-500 py-10">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No hay pedidos para mostrar</h3>
+                <p class="mt-1 text-sm text-gray-500">Actualmente no hay pedidos registrados en el sistema.</p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                            <th scope="col" class="relative px-6 py-3"><span class="sr-only">Acciones</span></th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach (var pedido in pedidos)
+                        {
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    #@pedido.Id
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @pedido.FechaPedido.ToString("dd/MM/yyyy HH:mm")
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    @((pedido.Usuario?.NombreCompleto ?? "Usuario Eliminado"))
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @pedido.Total.ToString("C")
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full @GetEstadoBadgeClass(pedido.Estado)">
+                                        @pedido.Estado
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                    <a href="@($"pedidos/detalle/{pedido.Id}")" class="text-indigo-600 hover:text-indigo-900">Ver</a>
+                                    <button @onclick="() => AbrirModalActualizarEstado(pedido)" class="text-yellow-600 hover:text-yellow-800">Editar</button>
+                                    <button @onclick="() => AbrirModalEliminar(pedido)" class="text-red-600 hover:text-red-900">Eliminar</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@if (mostrarModal)
+{
+    <div class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                Actualizar Estado del Pedido #@pedidoSeleccionado?.Id
+                            </h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500">
+                                    Cliente: @(pedidoSeleccionado?.Usuario?.NombreCompleto ?? "Usuario Eliminado")
+                                </p>
+                                <p class="text-sm text-gray-500">
+                                    Estado actual: <span class="@GetEstadoBadgeClass(pedidoSeleccionado?.Estado)">@pedidoSeleccionado?.Estado</span>
+                                </p>
+                            </div>
+                            <div class="mt-4">
+                                <label for="estado-select" class="block text-sm font-medium text-gray-700">Nuevo Estado</label>
+                                <select id="estado-select" @bind="nuevoEstado" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm rounded-md">
+                                    @foreach (var estado in estadosPedido)
+                                    {
+                                        <option value="@estado">@estado</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @onclick="ActualizarEstado" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Guardar
+                    </button>
+                    <button type="button" @onclick="CerrarModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEliminar)
+{
+    <div class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                Eliminar Pedido #@pedidoSeleccionado?.Id
+                            </h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500">
+                                    ¿Estás seguro de que quieres eliminar este pedido de forma permanente? Esta acción no se puede deshacer.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @onclick="EliminarPedido" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Eliminar
+                    </button>
+                    <button type="button" @onclick="CerrarModalEliminar" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Pedido>? pedidos;
+    private bool isLoading = true;
+    private bool mostrarModal = false;
+    private bool mostrarModalEliminar = false;
+    private Pedido? pedidoSeleccionado;
+    private string? nuevoEstado;
+    private readonly List<string> estadosPedido = new() { "Procesando", "Enviado", "Completado", "Cancelado" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarPedidosAsync();
+    }
+
+    private async Task CargarPedidosAsync()
+    {
+        isLoading = true;
+        try
+        {
+            pedidos = await DbContext.Pedidos
+                .Include(p => p.Usuario)
+                .OrderByDescending(p => p.FechaPedido)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar los pedidos en el panel de administración.");
+            // Manejar el error, tal vez mostrar un mensaje en la UI
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetEstadoBadgeClass(string estado)
+    {
+        return estado switch
+        {
+            "Procesando" => "bg-yellow-100 text-yellow-800",
+            "Enviado" => "bg-blue-100 text-blue-800",
+            "Completado" => "bg-green-100 text-green-800",
+            "Cancelado" => "bg-red-100 text-red-800",
+            _ => "bg-gray-100 text-gray-800"
+        };
+    }
+
+    private void AbrirModalActualizarEstado(Pedido pedido)
+    {
+        pedidoSeleccionado = pedido;
+        nuevoEstado = pedido.Estado;
+        mostrarModal = true;
+    }
+
+    private void AbrirModalEliminar(Pedido pedido)
+    {
+        pedidoSeleccionado = pedido;
+        mostrarModalEliminar = true;
+    }
+
+    private async Task ActualizarEstado()
+    {
+        if (pedidoSeleccionado == null || string.IsNullOrEmpty(nuevoEstado)) return;
+
+        try
+        {
+            var pedidoEnDb = await DbContext.Pedidos.FindAsync(pedidoSeleccionado.Id);
+            if (pedidoEnDb != null)
+            {
+                pedidoEnDb.Estado = nuevoEstado;
+                await DbContext.SaveChangesAsync();
+                await CargarPedidosAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al actualizar el estado del pedido {PedidoId}", pedidoSeleccionado.Id);
+        }
+        finally
+        {
+            CerrarModal();
+        }
+    }
+
+    private async Task EliminarPedido()
+    {
+        if (pedidoSeleccionado == null) return;
+
+        try
+        {
+            // Cargar explícitamente los detalles del pedido para eliminarlos en cascada
+            await DbContext.Entry(pedidoSeleccionado)
+                           .Collection(p => p.Detalles)
+                           .LoadAsync();
+
+            DbContext.Pedidos.Remove(pedidoSeleccionado);
+            await DbContext.SaveChangesAsync();
+
+            Logger.LogInformation("Pedido {PedidoId} eliminado exitosamente.", pedidoSeleccionado.Id);
+            await CargarPedidosAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al eliminar el pedido {PedidoId}", pedidoSeleccionado.Id);
+        }
+        finally
+        {
+            CerrarModalEliminar();
+        }
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+        pedidoSeleccionado = null;
+        nuevoEstado = null;
+    }
+
+    private void CerrarModalEliminar()
+    {
+        mostrarModalEliminar = false;
+        pedidoSeleccionado = null;
+    }
+}
