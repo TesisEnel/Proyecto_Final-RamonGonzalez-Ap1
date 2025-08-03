@@ -31,7 +31,7 @@ namespace Proyecto_Final.Models.Producto
         public bool EsNovedad { get; set; }
         public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 
-        public bool TieneVariaciones { get; set; } = false; // Indica si este producto tiene variaciones (tallas, colores, etc.)
+        public bool TieneVariaciones { get; set; } = false; 
         public List<ProductoVariacion> Variaciones { get; set; } = new(); 
         public List<DetallePedido> DetallesPedido { get; set; } = new();
         public List<Valoracion> Valoraciones { get; set; } = new();

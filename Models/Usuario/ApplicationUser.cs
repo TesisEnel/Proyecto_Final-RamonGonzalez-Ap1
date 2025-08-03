@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Proyecto_Final.Models.Pedidos;
 using Proyecto_Final.Models.Producto;
+using Proyecto_Final.Models.Carrito;
 
 namespace Proyecto_Final.Models.Usuario
 {

@@ -1,29 +1,19 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Proyecto_Final.Models.Producto;
+using System;
 using System.ComponentModel.DataAnnotations.Schema;
-using Proyecto_Final.Models.Usuario;
 
-namespace Proyecto_Final.Models.Producto
+namespace Proyecto_Final.Models.Carrito
 {
     public class CarritoItem
     {
-        [Key]
         public int Id { get; set; }
-
-        [Required]
-        public string UsuarioId { get; set; }
-
-        [ForeignKey("UsuarioId")]
-        public ApplicationUser Usuario { get; set; }
-
-        [Required]
-        public int ProductoId { get; set; }
-
-        [ForeignKey("ProductoId")]
-        public Producto Producto { get; set; }
-
-        [Required, Range(1, 100)]
         public int Cantidad { get; set; }
-
         public DateTime FechaAgregado { get; set; } = DateTime.UtcNow;
+        public int CarritoId { get; set; }
+        public virtual Carrito Carrito { get; set; }
+        public int ProductoVariacionId { get; set; }
+        public virtual ProductoVariacion ProductoVariacion { get; set; }
+        public int ProductoId { get; set; }
+        public virtual Proyecto_Final.Models.Producto.Producto Producto { get; set; }
     }
 }

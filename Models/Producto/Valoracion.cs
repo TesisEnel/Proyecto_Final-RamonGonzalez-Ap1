@@ -24,8 +24,6 @@ namespace Proyecto_Final.Models.Producto
 
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
-
-        // Relaciones
         public virtual ApplicationUser Usuario { get; set; }
         public virtual Producto Producto { get; set; }
     }
