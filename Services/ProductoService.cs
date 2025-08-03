@@ -5,10 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Proyecto_Final.Services
 {
-    public class ProductoService
+    public class ProductoService : IProductoService
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<ProductoService> _logger;
@@ -24,8 +25,8 @@ namespace Proyecto_Final.Services
             try
             {
                 return await _context.Productos
-                    .Where(p => p.EsNovedad) 
-                    .Include(p => p.DetallesPedido)
+                    .Where(p => p.EsNovedad)
+                    .Include(p => p.Variaciones)
                     .Include(p => p.Valoraciones)
                     .OrderByDescending(p => p.FechaCreacion)
                     .Take(cantidad)
@@ -38,14 +39,14 @@ namespace Proyecto_Final.Services
             }
         }
 
-        public async Task<Producto?> ObtenerProductoPorId(int id)
+        public async Task<Producto> ObtenerProductoPorId(int id)
         {
             try
             {
                 return await _context.Productos
                     .Include(p => p.Valoraciones)
                         .ThenInclude(v => v.Usuario)
-                    .Include(p => p.DetallesPedido)
+                    .Include(p => p.Variaciones)
                     .FirstOrDefaultAsync(p => p.Id == id);
             }
             catch (Exception ex)
@@ -62,6 +63,7 @@ namespace Proyecto_Final.Services
                 return await _context.Productos
                     .Where(p => p.Categoria == categoria)
                     .Include(p => p.Valoraciones)
+                    .Include(p => p.Variaciones)
                     .OrderBy(p => p.Nombre)
                     .Skip((pagina - 1) * cantidadPorPagina)
                     .Take(cantidadPorPagina)
@@ -83,9 +85,10 @@ namespace Proyecto_Final.Services
 
                 return await _context.Productos
                     .Where(p => p.Nombre.Contains(terminoBusqueda) ||
-                               p.Descripcion.Contains(terminoBusqueda) ||
-                               p.Categoria.Contains(terminoBusqueda))
+                                p.Descripcion.Contains(terminoBusqueda) ||
+                                p.Categoria == terminoBusqueda)
                     .Include(p => p.Valoraciones)
+                    .Include(p => p.Variaciones)
                     .OrderBy(p => p.Nombre)
                     .Skip((pagina - 1) * cantidadPorPagina)
                     .Take(cantidadPorPagina)
@@ -102,13 +105,16 @@ namespace Proyecto_Final.Services
         {
             try
             {
-                var producto = await _context.Productos.FindAsync(productoId);
+                var producto = await _context.Productos.AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == productoId);
+
                 if (producto == null)
                     return new List<Producto>();
 
                 return await _context.Productos
                     .Where(p => p.Categoria == producto.Categoria && p.Id != productoId)
                     .Include(p => p.Valoraciones)
+                    .Include(p => p.Variaciones)
                     .OrderByDescending(p => p.FechaCreacion)
                     .Take(cantidad)
                     .ToListAsync();
@@ -148,6 +154,7 @@ namespace Proyecto_Final.Services
                 return await _context.Productos
                     .Include(p => p.DetallesPedido)
                     .Include(p => p.Valoraciones)
+                    .Include(p => p.Variaciones)
                     .OrderByDescending(p => p.DetallesPedido.Sum(d => d.Cantidad))
                     .Take(cantidad)
                     .ToListAsync();
@@ -166,6 +173,7 @@ namespace Proyecto_Final.Services
                 return await _context.Productos
                     .Where(p => p.Descuento > 0)
                     .Include(p => p.Valoraciones)
+                    .Include(p => p.Variaciones)
                     .OrderByDescending(p => p.Descuento)
                     .Take(cantidad)
                     .ToListAsync();
@@ -222,6 +230,12 @@ namespace Proyecto_Final.Services
                 _logger.LogError(ex, $"Error al eliminar producto {productoId}");
                 return false;
             }
+        }
+        public async Task<ProductoVariacion> ObtenerProductoVariacionPorIdAsync(int id)
+        {
+            return await _context.ProductoVariaciones
+                .Include(pv => pv.Producto)
+                .FirstOrDefaultAsync(pv => pv.Id == id);
         }
     }
 }
