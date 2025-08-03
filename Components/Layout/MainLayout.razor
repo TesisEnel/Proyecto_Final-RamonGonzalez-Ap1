@@ -152,11 +152,6 @@
     </div>
 }
 
-<nav class="bg-white shadow-md">
-    <div class="container mx-auto px-4">
-    </div>
-</nav>
-
 <main class="flex-grow">
     @Body
 </main>
@@ -285,6 +280,7 @@
     {
         if (!string.IsNullOrWhiteSpace(searchQuery))
         {
+            NavManager.NavigateTo($"/buscar/{searchQuery}");
             CloseSearchModal();
         }
     }

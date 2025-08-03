@@ -7,15 +7,26 @@
         });
     });
 
+document.addEventListener('DOMContentLoaded', function () {
     console.log("Sitio cargado correctamente");
 });
-
 
 function createAccount() {
     alert("Funcionalidad de crear cuenta aún no implementada.");
 }
 
-document.getElementById("loginForm").addEventListener("submit", function(event) {
+document.getElementById("loginForm").addEventListener("submit", function (event) {
     event.preventDefault();
     alert("Iniciar sesión con: " + document.getElementById("email").value);
 });
+
+window.cartFunctions = {
+};
+
+window.registerScrollListener = (dotnetHelper, methodName) => {
+    window.addEventListener('scroll', () => {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+            dotnetHelper.invokeMethodAsync(methodName);
+        }
+    });
+};
