@@ -167,8 +167,6 @@
     private int? dropdownProductId = null;
     private string? mensajeStatus;
     private bool mensajeEsError = false;
-
-    // Variables y métodos para el modal de eliminación (NUEVO CÓDIGO)
     private bool mostrarModalEliminar = false;
     private int productoIdAEliminar;
     private string productoNombreAEliminar = string.Empty;
@@ -178,7 +176,7 @@
         productoIdAEliminar = producto.Id;
         productoNombreAEliminar = producto.Nombre;
         mostrarModalEliminar = true;
-        dropdownProductId = null; // Cerrar el dropdown al abrir el modal
+        dropdownProductId = null; 
         StateHasChanged();
     }
 
@@ -222,21 +220,17 @@
         dropdownProductId = (dropdownProductId == productId) ? null : productId;
     }
 
-    // Se corrige la ruta de navegación para que apunte a la página de edición de productos correcta.
     private void NavigateToEdit(int productId)
     {
         NavigationManager.NavigateTo($"/admin/editarproducto/{productId}");
         dropdownProductId = null;
     }
 
-    // Método que se llama desde el botón "Eliminar" del modal
     private async Task ConfirmarEliminarProducto()
     {
-        CerrarModalEliminar(); // Cerrar el modal inmediatamente
+        CerrarModalEliminar(); 
         await DeleteProduct(productoIdAEliminar);
     }
-
-    // El método DeleteProduct ahora solo se encarga de la lógica de eliminación.
     private async Task DeleteProduct(int productId)
     {
         try
@@ -246,7 +240,7 @@
             {
                 DbContext.Productos.Remove(productToDelete);
                 await DbContext.SaveChangesAsync();
-                await LoadProducts(); // Recargar la lista de productos
+                await LoadProducts(); 
 
                 mensajeStatus = "Producto eliminado con éxito.";
                 mensajeEsError = false;
