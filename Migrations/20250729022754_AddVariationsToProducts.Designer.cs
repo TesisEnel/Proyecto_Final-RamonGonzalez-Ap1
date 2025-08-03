@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Proyecto_Final.Data;
 
@@ -11,9 +12,11 @@ using Proyecto_Final.Data;
 namespace Proyecto_Final.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250729022754_AddVariationsToProducts")]
+    partial class AddVariationsToProducts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -182,7 +185,7 @@ namespace Proyecto_Final.Migrations
 
                     b.HasIndex("UsuarioId");
 
-                    b.ToTable("Pedidos", (string)null);
+                    b.ToTable("Pedidos");
                 });
 
             modelBuilder.Entity("Proyecto_Final.Models.Producto.CarritoItem", b =>
@@ -216,7 +219,7 @@ namespace Proyecto_Final.Migrations
 
                     b.HasIndex("UsuarioId");
 
-                    b.ToTable("CarritoItems", (string)null);
+                    b.ToTable("CarritoItems");
                 });
 
             modelBuilder.Entity("Proyecto_Final.Models.Producto.DetallePedido", b =>
@@ -245,7 +248,7 @@ namespace Proyecto_Final.Migrations
 
                     b.HasIndex("ProductoId");
 
-                    b.ToTable("DetallesPedido", (string)null);
+                    b.ToTable("DetallesPedido");
                 });
 
             modelBuilder.Entity("Proyecto_Final.Models.Producto.Producto", b =>
@@ -297,7 +300,7 @@ namespace Proyecto_Final.Migrations
 
                     b.HasIndex("Nombre");
 
-                    b.ToTable("Productos", (string)null);
+                    b.ToTable("Productos");
                 });
 
             modelBuilder.Entity("Proyecto_Final.Models.Producto.ProductoVariacion", b =>
@@ -331,7 +334,7 @@ namespace Proyecto_Final.Migrations
 
                     b.HasIndex("ProductoId");
 
-                    b.ToTable("ProductoVariaciones", (string)null);
+                    b.ToTable("ProductoVariaciones");
                 });
 
             modelBuilder.Entity("Proyecto_Final.Models.Producto.Valoracion", b =>
@@ -368,7 +371,7 @@ namespace Proyecto_Final.Migrations
 
                     b.HasIndex("UsuarioId");
 
-                    b.ToTable("Valoraciones", (string)null);
+                    b.ToTable("Valoraciones");
                 });
 
             modelBuilder.Entity("Proyecto_Final.Models.Usuario.ApplicationUser", b =>
@@ -498,7 +501,7 @@ namespace Proyecto_Final.Migrations
 
                     b.HasIndex("UsuarioId");
 
-                    b.ToTable("DireccionesEnvio", (string)null);
+                    b.ToTable("DireccionesEnvio");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
