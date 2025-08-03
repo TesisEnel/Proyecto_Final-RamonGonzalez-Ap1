@@ -78,6 +78,7 @@
                                                 <button @onclick="() => NavigateToEdit(producto.Id)" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem">
                                                     <i class="fas fa-edit mr-2"></i> Editar
                                                 </button>
+                                                <!-- Botón que abre el modal de eliminación (NUEVO CÓDIGO) -->
                                                 <button @onclick="() => AbrirModalEliminar(producto)" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 hover:text-red-800" role="menuitem">
                                                     <i class="fas fa-trash-alt mr-2"></i> Eliminar
                                                 </button>
@@ -121,6 +122,7 @@
     </div>
 </div>
 
+<!-- Inicio del modal de eliminación (NUEVO CÓDIGO) -->
 @if (mostrarModalEliminar)
 {
     <div class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -131,6 +133,7 @@
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
                         <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <!-- Icono de advertencia -->
                             <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
@@ -159,6 +162,7 @@
         </div>
     </div>
 }
+<!-- Fin del modal de eliminación -->
 @code {
     private List<Producto> productos = new List<Producto>();
     private bool isLoading = true;
@@ -168,6 +172,7 @@
     private string? mensajeStatus;
     private bool mensajeEsError = false;
 
+    // Variables y métodos para el modal de eliminación
     private bool mostrarModalEliminar = false;
     private int productoIdAEliminar;
     private string productoNombreAEliminar = string.Empty;
@@ -177,7 +182,7 @@
         productoIdAEliminar = producto.Id;
         productoNombreAEliminar = producto.Nombre;
         mostrarModalEliminar = true;
-        dropdownProductId = null; 
+        dropdownProductId = null; // Cerrar el dropdown al abrir el modal
         StateHasChanged();
     }
 
@@ -242,16 +247,19 @@
 
     private void NavigateToEdit(int productId)
     {
+        // Se ha corregido la ruta de navegación para que coincida con la de la página de camisetas
         NavigationManager.NavigateTo($"/admin/editarproducto/{productId}");
         dropdownProductId = null;
     }
 
+    // Método que se llama desde el botón "Eliminar" del modal
     private async Task ConfirmarEliminarProducto()
     {
-        CerrarModalEliminar(); 
+        CerrarModalEliminar(); // Cerrar el modal inmediatamente
         await DeleteProduct(productoIdAEliminar);
     }
 
+    // El método DeleteProduct ahora solo se encarga de la lógica de eliminación.
     private async Task DeleteProduct(int productId)
     {
         try
@@ -261,7 +269,7 @@
             {
                 DbContext.Productos.Remove(productToDelete);
                 await DbContext.SaveChangesAsync();
-                await LoadProducts(); 
+                await LoadProducts(); // Recargar la lista de productos
 
                 mensajeStatus = "Producto eliminado con éxito.";
                 mensajeEsError = false;
