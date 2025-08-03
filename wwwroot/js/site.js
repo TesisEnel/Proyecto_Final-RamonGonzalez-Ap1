@@ -1,24 +1,29 @@
-﻿document.addEventListener('DOMContentLoaded', function () {
-    // Ejemplo: Cambiar clase activa en filtros
-    const filterButtons = document.querySelectorAll('.category-filter button');
-    filterButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
+﻿// Ruta: wwwroot/js/site.js
 
-    // La función focusSearchInput ha sido eliminada, ya que no se necesita actualmente.
-
+document.addEventListener('DOMContentLoaded', function () {
+    // ... tu código existente ...
     console.log("Sitio cargado correctamente");
 });
-
 
 function createAccount() {
     alert("Funcionalidad de crear cuenta aún no implementada.");
 }
 
-document.getElementById("loginForm").addEventListener("submit", function(event) {
+document.getElementById("loginForm").addEventListener("submit", function (event) {
     event.preventDefault();
     alert("Iniciar sesión con: " + document.getElementById("email").value);
 });
+
+window.cartFunctions = {
+    // ... tu código de carrito existente ...
+};
+
+// 🎉 Solución: Agrega esta nueva función
+window.registerScrollListener = (dotnetHelper, methodName) => {
+    window.addEventListener('scroll', () => {
+        // La condición para detectar que el usuario se acerca al final de la página
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+            dotnetHelper.invokeMethodAsync(methodName);
+        }
+    });
+};
