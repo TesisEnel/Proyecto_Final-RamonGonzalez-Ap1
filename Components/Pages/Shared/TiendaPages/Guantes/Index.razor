@@ -1,9 +1,13 @@
 ﻿@page "/guantes"
 @rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 @using Proyecto_Final.Data
 @using Proyecto_Final.Models.Producto
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ApplicationDbContext DbContext
 @inject ILogger<Index> Logger
 
@@ -33,6 +37,13 @@
             </div>
         </div>
 
+        @if (!string.IsNullOrEmpty(mensajeStatus))
+        {
+            <div class="@(mensajeEsError ? "bg-red-100 border-red-400 text-red-700" : "bg-green-100 border-green-400 text-green-700") border rounded-md p-4 mb-4" role="alert">
+                @mensajeStatus
+            </div>
+        }
+
         @if (isLoading)
         {
             <div class="text-center py-12">
@@ -40,14 +51,7 @@
                 <div class="mt-4 animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
             </div>
         }
-        else if (errorMessage != null)
-        {
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <strong class="font-bold">Error:</strong>
-                <span class="block sm:inline">@errorMessage</span>
-            </div>
-        }
-        else if (!productos.Any())
+        else if (productos == null || !productos.Any())
         {
             <div class="text-center py-12">
                 <p class="text-xl text-gray-700">No se encontraron guantes en esta categoría.</p>
@@ -59,45 +63,135 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                 @foreach (var producto in productos)
                 {
-                    <a href="/productos/@producto.Id" class="block bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100">
-                        <div class="relative w-full h-64 overflow-hidden p-4 flex items-center justify-center bg-gray-50">
-                            <img src="@producto.ImagenUrl" alt="@producto.Nombre" class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300" onerror="this.onerror=null;this.src='https://placehold.co/400x400/E0E0E0/6C757D?text=Imagen+no+disponible';" />
-                        </div>
-                        <div class="p-4">
-                            <h3 class="text-lg font-semibold text-gray-900 truncate mb-1">@producto.Nombre</h3>
-                            <p class="text-gray-600 text-sm mb-3">@producto.Categoria</p>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <span class="text-xl font-bold text-gray-900">@producto.Precio.ToString("C")</span>
+                    <div class="relative bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100">
+                        @if (IsAdmin)
+                        {
+                            <div class="absolute top-2 right-2 z-10">
+                                <div class="relative inline-block text-left">
+                                    <button @onclick="() => ToggleDropdown(producto.Id)" type="button" class="inline-flex justify-center w-full rounded-full p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-yellow-400">
+                                        <i class="fas fa-cog text-xl"></i>
+                                    </button>
+                                    @if (dropdownProductId == producto.Id)
+                                    {
+                                        <div class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                            <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                                <button @onclick="() => NavigateToEdit(producto.Id)" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem">
+                                                    <i class="fas fa-edit mr-2"></i> Editar
+                                                </button>
+                                                <button @onclick="() => AbrirModalEliminar(producto)" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 hover:text-red-800" role="menuitem">
+                                                    <i class="fas fa-trash-alt mr-2"></i> Eliminar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <a href="/productos/@producto.Id" class="block">
+                            <div class="relative w-full h-64 overflow-hidden p-4 flex items-center justify-center bg-gray-50">
+                                <img src="@producto.ImagenUrl" alt="@producto.Nombre" class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300" onerror="this.onerror=null;this.src='https://placehold.co/400x400/E0E0E0/6C757D?text=Imagen+no+disponible';" />
+                            </div>
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold text-gray-900 truncate mb-1">@producto.Nombre</h3>
+                                <p class="text-gray-600 text-sm mb-3">@producto.Categoria</p>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <span class="text-xl font-bold text-gray-900">@producto.Precio.ToString("C")</span>
+                                        @if (producto.Descuento > 0)
+                                        {
+                                            <span class="ml-2 text-md text-red-500 line-through">
+                                                @((producto.Precio / (1 - producto.Descuento)).ToString("C"))
+                                            </span>
+                                        }
+                                    </div>
                                     @if (producto.Descuento > 0)
                                     {
-                                        <span class="ml-2 text-md text-red-500 line-through">
-                                            @((producto.Precio / (1 - producto.Descuento)).ToString("C"))
+                                        <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                            @((producto.Descuento * 100).ToString("0"))% OFF
                                         </span>
                                     }
                                 </div>
-                                @if (producto.Descuento > 0)
-                                {
-                                    <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                                        @((producto.Descuento * 100).ToString("0"))% OFF
-                                    </span>
-                                }
                             </div>
-                        </div>
-                    </a>
+                        </a>
+                    </div>
                 }
             </div>
         }
     </div>
 </div>
 
+@if (mostrarModalEliminar)
+{
+    <div class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                Eliminar Producto
+                            </h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500">
+                                    ¿Estás seguro de que quieres eliminar el producto "@productoNombreAEliminar" de forma permanente? Esta acción no se puede deshacer.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @onclick="ConfirmarEliminarProducto" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Eliminar
+                    </button>
+                    <button type="button" @onclick="CerrarModalEliminar" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 @code {
     private List<Producto> productos = new List<Producto>();
     private bool isLoading = true;
     private string? errorMessage;
+    private bool IsAdmin = false;
+    private int? dropdownProductId = null;
+    private string? mensajeStatus;
+    private bool mensajeEsError = false;
+
+    // Variables y métodos para el modal de eliminación (NUEVO CÓDIGO)
+    private bool mostrarModalEliminar = false;
+    private int productoIdAEliminar;
+    private string productoNombreAEliminar = string.Empty;
+
+    private void AbrirModalEliminar(Producto producto)
+    {
+        productoIdAEliminar = producto.Id;
+        productoNombreAEliminar = producto.Nombre;
+        mostrarModalEliminar = true;
+        dropdownProductId = null; // Cerrar el dropdown al abrir el modal
+        StateHasChanged();
+    }
+
+    private void CerrarModalEliminar() => mostrarModalEliminar = false;
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity.IsAuthenticated)
+        {
+            IsAdmin = user.IsInRole("Admin");
+        }
         await LoadProducts();
     }
 
@@ -120,6 +214,53 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private void ToggleDropdown(int productId)
+    {
+        dropdownProductId = (dropdownProductId == productId) ? null : productId;
+    }
+
+    // Se corrige la ruta de navegación para que apunte a la página de edición de productos correcta.
+    private void NavigateToEdit(int productId)
+    {
+        NavigationManager.NavigateTo($"/admin/editarproducto/{productId}");
+        dropdownProductId = null;
+    }
+
+    // Método que se llama desde el botón "Eliminar" del modal
+    private async Task ConfirmarEliminarProducto()
+    {
+        CerrarModalEliminar(); // Cerrar el modal inmediatamente
+        await DeleteProduct(productoIdAEliminar);
+    }
+
+    // El método DeleteProduct ahora solo se encarga de la lógica de eliminación.
+    private async Task DeleteProduct(int productId)
+    {
+        try
+        {
+            var productToDelete = await DbContext.Productos.FindAsync(productId);
+            if (productToDelete != null)
+            {
+                DbContext.Productos.Remove(productToDelete);
+                await DbContext.SaveChangesAsync();
+                await LoadProducts(); // Recargar la lista de productos
+
+                mensajeStatus = "Producto eliminado con éxito.";
+                mensajeEsError = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al eliminar el producto con ID: {ProductId}", productId);
+            mensajeStatus = "Error al eliminar el producto. Por favor, intente de nuevo.";
+            mensajeEsError = true;
+        }
+        finally
+        {
+            StateHasChanged();
         }
     }
 }
