@@ -1,0 +1,116 @@
+﻿@page "/buscar/{query}"
+@using Microsoft.EntityFrameworkCore
+@rendermode InteractiveServer
+@inject Proyecto_Final.Data.ApplicationDbContext DbContext
+@inject ILogger<Buscador> Logger
+
+<PageTitle>Resultados de búsqueda - Golazo Store</PageTitle>
+
+<div class="pt-16 min-h-screen bg-white">
+    <div class="container mx-auto px-4 py-8">
+        @if (string.IsNullOrWhiteSpace(Query))
+        {
+            <div class="text-center py-12">
+                <h1 class="text-3xl font-bold text-gray-800 mb-4">No se ingresó un término de búsqueda</h1>
+                <p class="text-lg text-gray-700">Por favor, ingrese lo que está buscando en la barra de búsqueda.</p>
+            </div>
+        }
+        else
+        {
+            <h1 class="text-5xl font-bold text-center mb-8 text-gray-800">Resultados para: "@Query"</h1>
+
+            @if (isLoading)
+            {
+                <div class="text-center py-12">
+                    <p class="text-xl text-gray-700">Buscando productos...</p>
+                    <div class="mt-4 animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+                </div>
+            }
+            else if (productos == null || !productos.Any())
+            {
+                <div class="text-center py-12">
+                    <p class="text-xl text-gray-700">No se encontraron productos que coincidan con "@Query".</p>
+                    <p class="text-md text-gray-500">Intenta buscar con palabras clave diferentes.</p>
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                    @foreach (var producto in productos)
+                    {
+                        <div class="relative bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100">
+                            <a href="/productos/@producto.Id" class="block">
+                                <div class="relative w-full h-64 overflow-hidden p-4 flex items-center justify-center bg-gray-50">
+                                    <img src="@producto.ImagenUrl" alt="@producto.Nombre" class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300" onerror="this.onerror=null;this.src='https://placehold.co/400x400/E0E0E0/6C757D?text=Imagen+no+disponible';" />
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="text-lg font-semibold text-gray-900 truncate mb-1">@producto.Nombre</h3>
+                                    <p class="text-gray-600 text-sm mb-3">@producto.Categoria</p>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <span class="text-xl font-bold text-gray-900">@producto.Precio.ToString("C")</span>
+                                            @if (producto.Descuento > 0)
+                                            {
+                                                <span class="ml-2 text-md text-red-500 line-through">
+                                                    @((producto.Precio / (1 - producto.Descuento)).ToString("C"))
+                                                </span>
+                                            }
+                                        </div>
+                                        @if (producto.Descuento > 0)
+                                        {
+                                            <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                                @((producto.Descuento * 100).ToString("0"))% OFF
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public string Query { get; set; } = string.Empty;
+
+    private List<Proyecto_Final.Models.Producto.Producto> productos = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(Query))
+        {
+            await LoadProducts();
+        }
+        else
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadProducts()
+    {
+        isLoading = true;
+        try
+        {
+            productos = await DbContext.Productos
+                .Where(p => p.Nombre.ToLower().Contains(Query.ToLower()) ||
+                            (p.Descripcion != null && p.Descripcion.ToLower().Contains(Query.ToLower())) ||
+                            (p.Categoria != null && p.Categoria.ToLower().Contains(Query.ToLower())))
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar los productos para la búsqueda: {Query}", Query);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
