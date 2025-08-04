@@ -263,7 +263,43 @@ namespace Proyecto_Final.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al agregar valoración");
-                throw; 
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene una lista de productos en un rango de fechas de creación opcional.
+        /// </summary>
+        /// <param name="startDate">La fecha de inicio para el filtro (opcional).</param>
+        /// <param name="endDate">La fecha de fin para el filtro (opcional).</param>
+        /// <returns>Una lista de productos que coinciden con el rango de fechas.</returns>
+        public async Task<List<Producto>> ObtenerProductosEnRangoDeFechas(DateTime? startDate, DateTime? endDate)
+        {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+            try
+            {
+                var query = _context.Productos.AsQueryable();
+
+                if (startDate.HasValue)
+                {
+                    query = query.Where(p => p.FechaCreacion >= startDate.Value);
+                }
+
+                if (endDate.HasValue)
+                {
+                    // Se añade un día para incluir la fecha final completa
+                    query = query.Where(p => p.FechaCreacion <= endDate.Value.AddDays(1));
+                }
+
+                return await query
+                    .Include(p => p.Variaciones) // Es crucial incluir las variaciones para calcular el stock total
+                    .OrderBy(p => p.Nombre)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener productos en rango de fechas.");
+                return new List<Producto>();
             }
         }
     }
