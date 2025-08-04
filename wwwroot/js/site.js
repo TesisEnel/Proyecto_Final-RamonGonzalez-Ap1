@@ -29,4 +29,6 @@ window.registerScrollListener = (dotnetHelper, methodName) => {
             dotnetHelper.invokeMethodAsync(methodName);
         }
     });
-};
+    };
+
+

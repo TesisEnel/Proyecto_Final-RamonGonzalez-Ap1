@@ -438,4 +438,27 @@ body {
         .cart-modal .p-4 {
             padding: 0.75rem;
         }
+
+
+    @keyframes scroll-marquee {
+        0% {
+            transform: translateX(100%);
+        }
+
+        100% {
+            transform: translateX(-100%);
+        }
+    }
+
+    .animate-marquee-infinite {
+        display: inline-block;
+        white-space: nowrap;
+        animation: scroll-marquee 20s linear infinite;
+    }
+
+
+
+
+
+
 }
