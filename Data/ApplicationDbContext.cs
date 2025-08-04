@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Proyecto_Final.Models;
 using Proyecto_Final.Models.Carrito;
 using Proyecto_Final.Models.Pedidos;
 using Proyecto_Final.Models.Producto;
@@ -12,14 +13,14 @@ namespace Proyecto_Final.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options) { }
 
-        public DbSet<Pedido> Pedidos { get; set; }
-        public DbSet<DetallePedido> DetallesPedido { get; set; }
-        public DbSet<Producto> Productos { get; set; }
-        public DbSet<Carrito> Carritos { get; set; }
-        public DbSet<CarritoItem> CarritoItems { get; set; }
-        public DbSet<Valoracion> Valoraciones { get; set; }
-        public DbSet<DireccionEnvio> DireccionesEnvio { get; set; }
-        public DbSet<ProductoVariacion> ProductoVariaciones { get; set; }
+        public DbSet<Pedido> Pedidos { get; set; } = default!;
+        public DbSet<DetallePedido> DetallesPedido { get; set; } = default!;
+        public DbSet<Producto> Productos { get; set; } = default!;
+        public DbSet<Carrito> Carritos { get; set; } = default!;
+        public DbSet<CarritoItem> CarritoItems { get; set; } = default!;
+        public DbSet<Valoracion> Valoraciones { get; set; } = default!;
+        public DbSet<DireccionEnvio> DireccionesEnvio { get; set; } = default!;
+        public DbSet<ProductoVariacion> ProductoVariaciones { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -56,16 +57,21 @@ namespace Proyecto_Final.Data
                 entity.Property(c => c.FechaAgregado).HasDefaultValueSql("GETUTCDATE()");
 
                 entity.HasOne(ci => ci.ProductoVariacion)
-                    .WithMany() 
+                    .WithMany()
                     .HasForeignKey(ci => ci.ProductoVariacionId)
-                    .OnDelete(DeleteBehavior.Cascade); 
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<Valoracion>(entity =>
             {
                 entity.Property(v => v.Comentario).HasMaxLength(1000);
-                entity.Property(v => v.Puntuacion).HasColumnType("decimal(3,1)");
+                entity.Property(v => v.Puntuacion).IsRequired();
                 entity.Property(v => v.FechaCreacion).HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasOne(v => v.Usuario)
+                      .WithMany(u => u.Valoraciones)
+                      .HasForeignKey(v => v.UsuarioId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<ProductoVariacion>(entity =>
