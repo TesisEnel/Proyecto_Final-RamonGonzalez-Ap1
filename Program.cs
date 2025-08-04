@@ -63,6 +63,7 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 
 builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<IPedidoService, PedidoService>();
 builder.Services.AddScoped<ICarritoService, CarritoService>();
 builder.Services.AddScoped<IAnonymousCartService, AnonymousCartService>();
 builder.Services.AddTransient<SeedData>();
