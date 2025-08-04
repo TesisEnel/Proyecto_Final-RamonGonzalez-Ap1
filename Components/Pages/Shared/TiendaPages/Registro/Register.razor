@@ -43,7 +43,7 @@
 
         <EditForm Model="Input" OnValidSubmit="RegisterUser">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-red-600 mb-4" />
+
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Informacion personal -->
@@ -81,7 +81,6 @@
                     <div class="mb-4">
                         <label for="Input.ConfirmPassword" class="block text-sm font-medium mb-1">Confirmar contraseña *</label>
                         <InputText type="password" id="Input.ConfirmPassword" class="w-full px-4 py-2 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" autocomplete="new-password" aria-required="true" placeholder="••••••••" @bind-Value="Input.ConfirmPassword" />
-                        <ValidationMessage For="() => Input.ConfirmPassword" class="text-red-500 text-sm" />
                     </div>
                 </div>
             </div>
@@ -110,14 +109,14 @@
 
     public async Task RegisterUser()
     {
-        errorMessage = string.Empty; 
-        successMessage = string.Empty; 
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
 
         var user = CreateUser();
         user.Nombre = Input.Nombre;
         user.Apellido = Input.Apellido;
         user.NombreCompleto = $"{Input.Nombre} {Input.Apellido}";
-        user.FechaRegistro = DateTime.UtcNow; 
+        user.FechaRegistro = DateTime.UtcNow;
 
         await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
         var emailStore = GetEmailStore();
@@ -138,7 +137,7 @@
             await SignInManager.SignInAsync(user, isPersistent: false);
             successMessage = "¡Tu cuenta ha sido creada con éxito! Redirigiendo a tu perfil...";
             await Task.Delay(2000);
-            NavigationManager.NavigateTo("/perfil"); 
+            NavigationManager.NavigateTo("/perfil");
         }
         else
         {
@@ -157,7 +156,7 @@
         {
             Logger.LogError(ex, "Error creating instance of ApplicationUser.");
             throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
-                $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor.");
+              $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor.");
         }
     }
 
