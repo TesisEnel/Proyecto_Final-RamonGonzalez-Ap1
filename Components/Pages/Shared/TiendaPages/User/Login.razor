@@ -5,6 +5,7 @@
 @using Proyecto_Final.Components.Account
 @using Proyecto_Final.Models.Usuario
 @using Proyecto_Final.Data
+@rendermode InteractiveServer
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
@@ -16,7 +17,7 @@
 <div class="container mx-auto px-4 py-12">
     <div class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-md border border-gray-200">
         <h2 class="text-3xl font-bold text-center mb-6 text-gray-800">Iniciar sesión</h2>
-        <StatusMessage Message="@errorMessage" /> 
+        <StatusMessage Message="@errorMessage" />
 
         <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
             <DataAnnotationsValidator />
@@ -64,7 +65,7 @@
     private string? errorMessage;
 
     [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    private HttpContext? HttpContext { get; set; }
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();
@@ -74,37 +75,37 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        // Se añade una comprobación para evitar el error si HttpContext es nulo.
+        if (HttpContext is not null && HttpMethods.IsGet(HttpContext.Request.Method))
         {
-            
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         }
     }
 
     public async Task LoginUser()
     {
-        
         var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
-            
-            RedirectManager.RedirectTo(ReturnUrl);
+            // Navegación del lado del cliente que fuerza la recarga de la página para actualizar el estado de autenticación
+            NavigationManager.NavigateTo(ReturnUrl ?? "/", true);
         }
         else if (result.RequiresTwoFactor)
         {
-            RedirectManager.RedirectTo(
-                "Account/LoginWith2fa",
-                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+            // Usa NavigationManager para la navegación a 2FA
+            var url = $"Account/LoginWith2fa?returnUrl={ReturnUrl}&rememberMe={Input.RememberMe}";
+            NavigationManager.NavigateTo(url, true);
         }
         else if (result.IsLockedOut)
         {
             Logger.LogWarning("User account locked out.");
-            RedirectManager.RedirectTo("Account/Lockout");
+            // Usa NavigationManager para la navegación a la página de bloqueo
+            NavigationManager.NavigateTo("Account/Lockout", true);
         }
         else
         {
-            errorMessage = "Error: Correo o contraseña incorrectos."; 
+            errorMessage = "Error: Correo o contraseña incorrectos.";
         }
     }
 
