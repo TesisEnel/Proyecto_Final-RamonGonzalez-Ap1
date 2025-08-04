@@ -6,22 +6,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Proyecto_Final.Models;
 
 namespace Proyecto_Final.Services
 {
     public class ProductoService : IProductoService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
         private readonly ILogger<ProductoService> _logger;
 
-        public ProductoService(ApplicationDbContext context, ILogger<ProductoService> logger)
+        public ProductoService(IDbContextFactory<ApplicationDbContext> contextFactory, ILogger<ProductoService> logger)
         {
-            _context = context;
+            _contextFactory = contextFactory;
             _logger = logger;
         }
 
         public async Task<List<Producto>> ObtenerProductosDestacados(int cantidad)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             try
             {
                 return await _context.Productos
@@ -39,8 +41,9 @@ namespace Proyecto_Final.Services
             }
         }
 
-        public async Task<Producto> ObtenerProductoPorId(int id)
+        public async Task<Producto?> ObtenerProductoPorId(int id)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             try
             {
                 return await _context.Productos
@@ -58,6 +61,7 @@ namespace Proyecto_Final.Services
 
         public async Task<List<Producto>> ObtenerProductosPorCategoria(string categoria, int pagina = 1, int cantidadPorPagina = 10)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             try
             {
                 return await _context.Productos
@@ -78,6 +82,7 @@ namespace Proyecto_Final.Services
 
         public async Task<List<Producto>> BuscarProductos(string terminoBusqueda, int pagina = 1, int cantidadPorPagina = 10)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             try
             {
                 if (string.IsNullOrWhiteSpace(terminoBusqueda))
@@ -85,8 +90,8 @@ namespace Proyecto_Final.Services
 
                 return await _context.Productos
                     .Where(p => p.Nombre.Contains(terminoBusqueda) ||
-                                p.Descripcion.Contains(terminoBusqueda) ||
-                                p.Categoria == terminoBusqueda)
+                                 p.Descripcion.Contains(terminoBusqueda) ||
+                                 p.Categoria == terminoBusqueda)
                     .Include(p => p.Valoraciones)
                     .Include(p => p.Variaciones)
                     .OrderBy(p => p.Nombre)
@@ -103,6 +108,7 @@ namespace Proyecto_Final.Services
 
         public async Task<List<Producto>> ObtenerProductosRelacionados(int productoId, int cantidad = 4)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             try
             {
                 var producto = await _context.Productos.AsNoTracking()
@@ -128,6 +134,7 @@ namespace Proyecto_Final.Services
 
         public async Task ActualizarValoracionPromedio(int productoId)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             try
             {
                 var producto = await _context.Productos
@@ -149,6 +156,7 @@ namespace Proyecto_Final.Services
 
         public async Task<List<Producto>> ObtenerProductosMasVendidos(int cantidad)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             try
             {
                 return await _context.Productos
@@ -168,6 +176,7 @@ namespace Proyecto_Final.Services
 
         public async Task<List<Producto>> ObtenerProductosEnOferta(int cantidad)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             try
             {
                 return await _context.Productos
@@ -187,6 +196,7 @@ namespace Proyecto_Final.Services
 
         public async Task<bool> CrearProducto(Producto producto)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             try
             {
                 _context.Productos.Add(producto);
@@ -202,6 +212,7 @@ namespace Proyecto_Final.Services
 
         public async Task<bool> ActualizarProducto(Producto producto)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             try
             {
                 _context.Productos.Update(producto);
@@ -217,6 +228,7 @@ namespace Proyecto_Final.Services
 
         public async Task<bool> DesactivarProducto(int productoId)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             try
             {
                 var producto = await _context.Productos.FindAsync(productoId);
@@ -231,11 +243,28 @@ namespace Proyecto_Final.Services
                 return false;
             }
         }
-        public async Task<ProductoVariacion> ObtenerProductoVariacionPorIdAsync(int id)
+
+        public async Task<ProductoVariacion?> ObtenerProductoVariacionPorIdAsync(int id)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             return await _context.ProductoVariaciones
                 .Include(pv => pv.Producto)
                 .FirstOrDefaultAsync(pv => pv.Id == id);
+        }
+
+        public async Task AgregarValoracion(Valoracion valoracion)
+        {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+            try
+            {
+                _context.Valoraciones.Add(valoracion);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al agregar valoración");
+                throw; 
+            }
         }
     }
 }
