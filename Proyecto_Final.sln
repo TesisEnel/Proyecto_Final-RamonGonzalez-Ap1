@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36301.6
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Proyecto_Final", "Proyecto_Final.csproj", "{EA032D40-5A24-4B12-B9AD-C3A737012664}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Proyecto_Final", "EcomerceFutbol\Proyecto_Final.csproj", "{1E1D5020-6689-2EA5-001C-0B4B15DC463C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,10 +11,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{EA032D40-5A24-4B12-B9AD-C3A737012664}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EA032D40-5A24-4B12-B9AD-C3A737012664}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EA032D40-5A24-4B12-B9AD-C3A737012664}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EA032D40-5A24-4B12-B9AD-C3A737012664}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E1D5020-6689-2EA5-001C-0B4B15DC463C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E1D5020-6689-2EA5-001C-0B4B15DC463C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E1D5020-6689-2EA5-001C-0B4B15DC463C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E1D5020-6689-2EA5-001C-0B4B15DC463C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
