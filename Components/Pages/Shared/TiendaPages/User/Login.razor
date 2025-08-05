@@ -1,4 +1,5 @@
 ﻿@page "/Account/Login"
+
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
@@ -16,22 +17,21 @@
 <div class="container mx-auto px-4 py-12">
     <div class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-md border border-gray-200">
         <h2 class="text-3xl font-bold text-center mb-6 text-gray-800">Iniciar sesión</h2>
-        <StatusMessage Message="@errorMessage" /> 
+        <StatusMessage Message="@errorMessage" />
 
         <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
 
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-1">Correo electrónico *</label>
                 <InputText @bind-Value="Input.Email" class="w-full px-4 py-2 border rounded-lg" autocomplete="username" aria-required="true" placeholder="nombre@example.com" />
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
+                <ValidationMessage For="() => Input.Email" class="text-red-500 text-sm" />
             </div>
 
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-1">Contraseña *</label>
                 <InputText type="password" @bind-Value="Input.Password" class="w-full px-4 py-2 border rounded-lg" autocomplete="current-password" aria-required="true" placeholder="contraseña" />
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
+                <ValidationMessage For="() => Input.Password" class="text-red-500 text-sm" />
             </div>
 
             <div class="flex justify-between items-center mb-6">
@@ -76,26 +76,23 @@
     {
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
-            
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         }
     }
 
     public async Task LoginUser()
     {
-        
         var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
-            
             RedirectManager.RedirectTo(ReturnUrl);
         }
         else if (result.RequiresTwoFactor)
         {
             RedirectManager.RedirectTo(
-                "Account/LoginWith2fa",
-                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+            "Account/LoginWith2fa",
+            new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
         }
         else if (result.IsLockedOut)
         {
@@ -104,7 +101,7 @@
         }
         else
         {
-            errorMessage = "Error: Correo o contraseña incorrectos."; 
+            errorMessage = "Error: Correo o contraseña incorrectos.";
         }
     }
 
@@ -113,11 +110,9 @@
         [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
         [EmailAddress(ErrorMessage = "Formato de correo electrónico inválido.")]
         public string Email { get; set; } = "";
-
         [Required(ErrorMessage = "La contraseña es obligatoria.")]
         [DataType(DataType.Password)]
         public string Password { get; set; } = "";
-
         [Display(Name = "¿Recordarme?")]
         public bool RememberMe { get; set; }
     }

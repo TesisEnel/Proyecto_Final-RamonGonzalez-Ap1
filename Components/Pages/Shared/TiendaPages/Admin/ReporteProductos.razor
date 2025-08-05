@@ -1,0 +1,143 @@
+﻿@page "/reporte-productos"
+
+@using System.Globalization
+@using System.Text
+@using Microsoft.JSInterop
+@using Proyecto_Final.Models.Producto 
+@using Proyecto_Final.Services 
+
+@inject IJSRuntime JSRuntime
+@inject IProductoService ProductoService
+
+<PageTitle>Reporte de Productos</PageTitle>
+
+<div class="container mx-auto px-4 py-12">
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-md border border-gray-200">
+        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">Reporte de Productos</h1>
+
+        <form @onsubmit="FilterProducts" class="flex flex-col sm:flex-row gap-4 mb-8 items-end">
+            <div class="flex-1 w-full">
+                <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Creación (Inicio)</label>
+                <input type="date" id="startDate" @bind="StartDate" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500">
+            </div>
+            <div class="flex-1 w-full">
+                <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Creación (Fin)</label>
+                <input type="date" id="endDate" @bind="EndDate" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500">
+            </div>
+            <button type="submit" class="w-full sm:w-auto px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-lg shadow transition-colors duration-300">
+                Filtrar
+            </button>
+        </form>
+
+        <div class="overflow-x-auto rounded-lg shadow border border-gray-200">
+            <table class="min-w-full bg-white rounded-lg">
+                <thead class="bg-gray-200 text-gray-700">
+                    <tr>
+                        <th class="py-3 px-4 text-left font-semibold text-sm uppercase tracking-wider">ID</th>
+                        <th class="py-3 px-4 text-left font-semibold text-sm uppercase tracking-wider">Nombre</th>
+                        <th class="py-3 px-4 text-left font-semibold text-sm uppercase tracking-wider">Precio</th>
+                        <th class="py-3 px-4 text-left font-semibold text-sm uppercase tracking-wider">Stock</th>
+                        <th class="py-3 px-4 text-left font-semibold text-sm uppercase tracking-wider">Fecha de Creación</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    @if (products == null)
+                    {
+                        <tr><td colspan="5" class="py-4 text-center text-gray-500">Cargando productos...</td></tr>
+                    }
+                    else if (!products.Any())
+                    {
+                        <tr><td colspan="5" class="py-4 text-center text-gray-500">No se encontraron productos en este rango.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var product in products)
+                        {
+                            var totalStock = product.Variaciones?.Sum(v => v.Stock) ?? 0;
+
+                            <tr class="hover:bg-gray-50">
+                                <td class="py-3 px-4">@product.Id</td>
+                                <td class="py-3 px-4">@product.Nombre</td>
+                                <td class="py-3 px-4">@product.Precio.ToString("C", new CultureInfo("es-DO"))</td>
+                                <td class="py-3 px-4">@totalStock</td>
+                                <td class="py-3 px-4">@product.FechaCreacion.ToString("dd/MM/yyyy")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-8 text-center">
+            <button @onclick="GenerateReport" class="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-lg shadow-lg transition-colors duration-300">
+                Imprimir Reporte
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Producto>? products;
+
+    private DateTime? StartDate { get; set; }
+    private DateTime? EndDate { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await ProductoService.ObtenerProductosEnRangoDeFechas(null, null);
+    }
+
+    private async Task FilterProducts()
+    {
+        products = await ProductoService.ObtenerProductosEnRangoDeFechas(StartDate, EndDate);
+    }
+
+    private async Task GenerateReport()
+    {
+        var reportHtml = new StringBuilder();
+
+        reportHtml.Append("<!DOCTYPE html><html><head>");
+        reportHtml.Append("<title>Reporte de Productos</title>");
+        reportHtml.Append("<style>");
+        reportHtml.Append("body { font-family: 'Inter', sans-serif; margin: 2rem; }");
+        reportHtml.Append("h1 { font-size: 2rem; font-weight: 700; text-align: center; margin-bottom: 0.5rem; }");
+        reportHtml.Append("p { text-align: center; font-size: 1rem; color: #6b7280; margin-bottom: 1rem; }");
+        reportHtml.Append("table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }");
+        reportHtml.Append("th, td { border: 1px solid #e5e7eb; padding: 0.75rem; text-align: left; }");
+        reportHtml.Append("thead { background-color: #f3f4f6; }");
+        reportHtml.Append("</style>");
+        reportHtml.Append("</head><body>");
+
+        reportHtml.Append("<h1>Reporte de Productos</h1>");
+        reportHtml.Append($"<p>Generado el: {DateTime.Now.ToString("dd/MM/yyyy")}</p>");
+
+        if (StartDate.HasValue && EndDate.HasValue)
+        {
+            reportHtml.Append($"<p>Periodo de filtro: del {StartDate.Value.ToString("dd/MM/yyyy")} al {EndDate.Value.ToString("dd/MM/yyyy")}</p>");
+        }
+
+        reportHtml.Append("<table>");
+        reportHtml.Append("<thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Fecha de Creación</th></tr></thead>");
+        reportHtml.Append("<tbody>");
+
+        if (products != null)
+        {
+            foreach (var product in products)
+            {
+                var totalStock = product.Variaciones?.Sum(v => v.Stock) ?? 0;
+
+                reportHtml.Append("<tr>");
+                reportHtml.Append($"<td>{product.Id}</td>");
+                reportHtml.Append($"<td>{product.Nombre}</td>");
+                reportHtml.Append($"<td>{product.Precio.ToString("C", new CultureInfo("es-DO"))}</td>");
+                reportHtml.Append($"<td>{totalStock}</td>");
+                reportHtml.Append($"<td>{product.FechaCreacion.ToString("dd/MM/yyyy")}</td>");
+                reportHtml.Append("</tr>");
+            }
+        }
+        reportHtml.Append("</tbody></table>");
+        reportHtml.Append("</body></html>");
+
+        await JSRuntime.InvokeVoidAsync("printReport", reportHtml.ToString());
+    }
+}

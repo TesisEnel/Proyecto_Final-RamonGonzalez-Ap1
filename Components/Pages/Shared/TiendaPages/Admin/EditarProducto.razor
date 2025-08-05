@@ -1,0 +1,408 @@
+﻿@page "/admin/editarproducto/{Id:int}"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authorization
+@using Proyecto_Final.Data
+@using Proyecto_Final.Models.Producto
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Hosting
+@using System.IO
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavigationManager
+@inject ILogger<EditarProducto> Logger
+@inject IWebHostEnvironment WebHostEnvironment
+@inject IConfiguration Configuration
+
+<PageTitle>Editar Producto - Golazo Store</PageTitle>
+
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">
+        Edición de Producto
+    </h1>
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <strong class="font-bold">Éxito:</strong>
+            <span class="block sm:inline">@successMessage</span>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <strong class="font-bold">Error:</strong>
+            <span class="block sm:inline">@errorMessage</span>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="text-center py-12">
+            <p class="text-xl text-gray-700">Cargando producto...</p>
+            <div class="mt-4 animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+        </div>
+    }
+    else if (ProductoForm != null)
+    {
+        <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+            <EditForm Model="ProductoForm" OnValidSubmit="HandleValidSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-red-600 mb-4" />
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre del Producto *</label>
+                        <InputText id="nombre" @bind-Value="ProductoForm.Nombre" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500" />
+                        <ValidationMessage For="() => ProductoForm.Nombre" class="text-red-500 text-sm" />
+                    </div>
+                    <div>
+                        <label for="categoria" class="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
+                        <InputSelect id="categoria" @bind-Value:get="ProductoForm.Categoria" @bind-Value:set="OnCategoriaChanged" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                            <option value="">Selecciona una categoría</option>
+                            <option value="Camisetas">Camisetas</option>
+                            <option value="Botines">Botines</option>
+                            <option value="Guantes">Guantes</option>
+                            <option value="Accesorios">Accesorios</option>
+                        </InputSelect>
+                        <ValidationMessage For="() => ProductoForm.Categoria" class="text-red-500 text-sm" />
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1">Descripción *</label>
+                    <InputTextArea id="descripcion" @bind-Value="ProductoForm.Descripcion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500 h-24" />
+                    <ValidationMessage For="() => ProductoForm.Descripcion" class="text-red-500 text-sm" />
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label for="precio" class="block text-sm font-medium text-gray-700 mb-1">Precio Base *</label>
+                        <InputNumber id="precio" @bind-Value="ProductoForm.Precio" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500" />
+                        <ValidationMessage For="() => ProductoForm.Precio" class="text-red-500 text-sm" />
+                    </div>
+                    <div>
+                        <label for="imagenFile" class="block text-sm font-medium text-gray-700 mb-1">Imagen del Producto</label>
+                        <InputFile id="imagenFile" OnChange="OnImageFileChange" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500" />
+                        @if (!string.IsNullOrEmpty(imagePreviewUrl))
+                        {
+                            <img src="@imagePreviewUrl" class="mt-2 max-h-40 rounded-md shadow" alt="Vista previa de la imagen" />
+                        }
+                    </div>
+                </div>
+
+                <div class="flex items-center mb-6">
+                    <InputCheckbox id="esNovedad" @bind-Value="ProductoForm.EsNovedad" class="mr-2 h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded" />
+                    <label for="esNovedad" class="text-sm font-medium text-gray-700">Marcar como Novedad</label>
+                </div>
+
+                <div class="flex items-center mb-6">
+                    <InputCheckbox id="tieneVariaciones" @bind-Value="ProductoForm.TieneVariaciones" class="mr-2 h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded" />
+                    <label for="tieneVariaciones" class="text-sm font-medium text-gray-700">Este producto tiene variaciones (tallas, colores, etc.)</label>
+                </div>
+
+                @if (ProductoForm.TieneVariaciones)
+                {
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">Detalles de Variaciones del Producto</h3>
+                    @if (ProductoForm.Variaciones.Count == 0)
+                    {
+                        <p class="text-gray-600 mb-4">Añade al menos una variación para este producto.</p>
+                    }
+
+                    @foreach (var variacion in ProductoForm.Variaciones)
+                    {
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-md mb-4 border border-gray-200">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo Atributo *</label>
+                                @if (ProductoForm.Categoria == "Camisetas" || ProductoForm.Categoria == "Botines" || ProductoForm.Categoria == "Guantes")
+                                {
+                                    <InputText @bind-Value="variacion.TipoAtributo" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly />
+                                }
+                                else
+                                {
+                                    <InputText @bind-Value="variacion.TipoAtributo" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Ej: Talla, Color" />
+                                }
+                                <ValidationMessage For="() => variacion.TipoAtributo" class="text-red-500 text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Valor Atributo *</label>
+                                @switch (ProductoForm.Categoria)
+                                {
+                                    case "Camisetas":
+                                        <InputText @bind-Value="variacion.ValorAtributo" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Ej: S, M, L" list="tallasCamisetas" />
+                                        <datalist id="tallasCamisetas">
+                                            <option value="XS"></option>
+                                            <option value="S"></option>
+                                            <option value="M"></option>
+                                            <option value="L"></option>
+                                            <option value="XL"></option>
+                                            <option value="XXL"></option>
+                                        </datalist>
+                                        break;
+                                    case "Botines":
+                                    case "Guantes":
+                                        <InputText @bind-Value="variacion.ValorAtributo" type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Ej: 8, 9, 10" list="tallasNumericas" />
+                                        <datalist id="tallasNumericas">
+                                            @for (int i = 6; i <= 12; i++)
+                                            {
+                                                <option value="@i"></option>
+                                            }
+                                        </datalist>
+                                        break;
+                                    default:
+                                        <InputText @bind-Value="variacion.ValorAtributo" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Ej: Rojo, Grande" />
+                                        break;
+                                }
+                                <ValidationMessage For="() => variacion.ValorAtributo" class="text-red-500 text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Stock *</label>
+                                <InputNumber @bind-Value="variacion.Stock" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                                <ValidationMessage For="() => variacion.Stock" class="text-red-500 text-sm" />
+                            </div>
+                            <div class="flex items-end">
+                                <button type="button" @onclick="() => RemoverVariacion(variacion)" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300">
+                                    Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    }
+                    <button type="button" @onclick="AñadirVariacion" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300 mt-2">
+                        + Añadir Variación
+                    </button>
+                }
+
+                <div class="mt-8 text-right">
+                    <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-lg transition-colors duration-300">
+                        Guardar Cambios
+                    </button>
+                    <button type="button" @onclick="Cancelar" class="ml-4 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300">
+                        Cancelar
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Producto ProductoForm { get; set; }
+    private string? successMessage;
+    private string? errorMessage;
+    private bool isLoading = true;
+    private IBrowserFile? selectedImageFile;
+    private string? imagePreviewUrl;
+    private string? originalImageUrl;
+    private string? originalCategory;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProduct();
+    }
+
+    private async Task LoadProduct()
+    {
+        isLoading = true;
+        try
+        {
+            var productoExistente = await DbContext.Productos
+                .Include(p => p.Variaciones)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == Id);
+
+            if (productoExistente != null)
+            {
+                ProductoForm = productoExistente;
+                imagePreviewUrl = productoExistente.ImagenUrl;
+                originalImageUrl = productoExistente.ImagenUrl;
+                originalCategory = productoExistente.Categoria;
+            }
+            else
+            {
+                errorMessage = "Producto no encontrado.";
+                NavigationManager.NavigateTo("/admin/productos");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al cargar el producto. Intente de nuevo más tarde.";
+            Logger.LogError(ex, "Error al cargar producto con ID: {Id}", Id);
+            NavigationManager.NavigateTo("/admin/productos");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OnCategoriaChanged(string newCategory)
+    {
+        ProductoForm.Categoria = newCategory;
+        if (ProductoForm.TieneVariaciones)
+        {
+            if (newCategory == "Camisetas" || newCategory == "Botines" || newCategory == "Guantes")
+            {
+                foreach (var variacion in ProductoForm.Variaciones)
+                {
+                    variacion.TipoAtributo = "Talla";
+                }
+            }
+            else
+            {
+                foreach (var variacion in ProductoForm.Variaciones)
+                {
+                    if (variacion.TipoAtributo == "Talla")
+                    {
+                        variacion.TipoAtributo = string.Empty;
+                    }
+                }
+            }
+        }
+    }
+
+    private void AñadirVariacion()
+    {
+        var nuevaVariacion = new ProductoVariacion();
+        if (ProductoForm.Categoria == "Camisetas" || ProductoForm.Categoria == "Botines" || ProductoForm.Categoria == "Guantes")
+        {
+            nuevaVariacion.TipoAtributo = "Talla";
+        }
+        ProductoForm.Variaciones.Add(nuevaVariacion);
+    }
+
+    private void RemoverVariacion(ProductoVariacion variacion)
+    {
+        ProductoForm.Variaciones.Remove(variacion);
+    }
+
+    private async Task OnImageFileChange(InputFileChangeEventArgs e)
+    {
+        selectedImageFile = e.File;
+        if (selectedImageFile != null)
+        {
+            var buffer = new byte[selectedImageFile.Size];
+            await selectedImageFile.OpenReadStream().ReadAsync(buffer);
+            imagePreviewUrl = $"data:{selectedImageFile.ContentType};base64,{Convert.ToBase64String(buffer)}";
+        }
+        else
+        {
+            imagePreviewUrl = originalImageUrl;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        successMessage = string.Empty;
+        errorMessage = string.Empty;
+
+        try
+        {
+            if (ProductoForm.TieneVariaciones && (!ProductoForm.Variaciones?.Any() ?? true))
+            {
+                errorMessage = "Si el producto tiene variaciones, debe añadir al menos una variación.";
+                return;
+            }
+
+            if (!ProductoForm.TieneVariaciones)
+            {
+                ProductoForm.Variaciones.Clear();
+            }
+
+            if (ProductoForm.TieneVariaciones && (ProductoForm.Categoria == "Camisetas" || ProductoForm.Categoria == "Botines" || ProductoForm.Categoria == "Guantes"))
+            {
+                foreach (var variacion in ProductoForm.Variaciones)
+                {
+                    variacion.TipoAtributo = "Talla";
+                }
+            }
+
+            // Si la categoría ha cambiado, necesitamos manejar la imagen de forma diferente
+            if (ProductoForm.Categoria != originalCategory && !string.IsNullOrEmpty(originalImageUrl))
+            {
+                var oldFilePath = Path.Combine(WebHostEnvironment.WebRootPath, originalImageUrl.TrimStart('/'));
+                if (File.Exists(oldFilePath))
+                {
+                    File.Delete(oldFilePath);
+                }
+                ProductoForm.ImagenUrl = string.Empty; // Resetear la URL de la imagen
+            }
+
+            // Subir nueva imagen si se seleccionó una
+            if (selectedImageFile != null)
+            {
+                var uploadsFolder = Path.Combine(WebHostEnvironment.WebRootPath, "images", ProductoForm.Categoria.ToLowerInvariant());
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                var uniqueFileName = Guid.NewGuid().ToString() + "_" + selectedImageFile.Name;
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                await using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await selectedImageFile.OpenReadStream().CopyToAsync(stream);
+                }
+
+                ProductoForm.ImagenUrl = $"/images/{ProductoForm.Categoria.ToLowerInvariant()}/{uniqueFileName}";
+            }
+
+            // Obtener la entidad rastreada del contexto para la actualización
+            var existingProduct = await DbContext.Productos
+                                                    .Include(p => p.Variaciones)
+                                                    .FirstOrDefaultAsync(p => p.Id == Id);
+
+            if (existingProduct == null)
+            {
+                errorMessage = "Producto no encontrado en la base de datos.";
+                return;
+            }
+
+            // Actualizar las propiedades del producto existente
+            DbContext.Entry(existingProduct).CurrentValues.SetValues(ProductoForm);
+
+            // Eliminar variaciones que ya no están en el formulario
+            var deletedVariations = existingProduct.Variaciones
+                .Where(v => !ProductoForm.Variaciones.Any(newV => newV.Id == v.Id));
+            DbContext.ProductoVariaciones.RemoveRange(deletedVariations);
+
+            // Actualizar o agregar nuevas variaciones
+            foreach (var newVariacion in ProductoForm.Variaciones)
+            {
+                var existingVariation = existingProduct.Variaciones
+                    .FirstOrDefault(v => v.Id == newVariacion.Id);
+
+                if (existingVariation != null)
+                {
+                    DbContext.Entry(existingVariation).CurrentValues.SetValues(newVariacion);
+                }
+                else
+                {
+                    newVariacion.ProductoId = existingProduct.Id;
+                    DbContext.ProductoVariaciones.Add(newVariacion);
+                }
+            }
+
+            await DbContext.SaveChangesAsync();
+            successMessage = $"Producto '{ProductoForm.Nombre}' actualizado exitosamente.";
+            Logger.LogInformation("Producto actualizado: {ProductoNombre}", ProductoForm.Nombre);
+
+            NavigationManager.NavigateTo("/admin/productos");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al guardar los cambios: {ex.Message}";
+            Logger.LogError(ex, "Error al actualizar producto.");
+        }
+    }
+
+    private void Cancelar()
+    {
+        NavigationManager.NavigateTo("/admin/productos");
+    }
+}

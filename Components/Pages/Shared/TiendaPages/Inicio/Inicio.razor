@@ -1,137 +1,370 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+
+@using System.Timers
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using Proyecto_Final.Data
+@using Proyecto_Final.Models.Producto
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
 
 <PageTitle>Inicio - Golazo Store</PageTitle>
 
-<section class="hero-bg">
-    <div class="container mx-auto h-full flex items-center relative z-10 px-4">
-        <div class="max-w-2xl hero-content">
-            <div class="text-yellow-400 uppercase text-sm md:text-base font-bold tracking-widest mb-2">
-                CAMBIO DE TEMPORADA 2025/26
+<section class="relative w-full h-screen overflow-hidden flex items-center justify-center">
+    <div class="relative w-full h-full">
+        @for (int i = 0; i < bannerImages.Count; i++)
+        {
+            var index = i;
+            <div class="absolute inset-0 transition-opacity duration-700 ease-in-out @(currentBannerIndex == index ? "opacity-100" : "opacity-0")">
+                <img src="@bannerImages[index].ImageUrl"
+                     alt="@bannerImages[index].AltText"
+                     class="w-full h-full object-cover">
+
+                <div class="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent flex items-center">
+                    <div class="container mx-auto px-4">
+                        <div class="max-w-lg text-white">
+                            <h2 class="text-3xl md:text-5xl font-bold mb-4 animate-fade-in">@bannerImages[index].Title</h2>
+                            <p class="text-lg md:text-xl mb-6 animate-fade-in-delayed">@bannerImages[index].Description</p>
+                            @if (!string.IsNullOrEmpty(bannerImages[index].ButtonText) && !string.IsNullOrEmpty(bannerImages[index].ButtonUrl))
+                            {
+                                <a href="@bannerImages[index].ButtonUrl"
+                                   class="inline-block bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 animate-fade-in-delayed-2">
+                                    @bannerImages[index].ButtonText
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <button @onclick="PreviousBanner"
+            class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-3 rounded-full transition-all duration-300 hover:scale-110">
+        <i class="fas fa-chevron-left text-xl"></i>
+    </button>
+
+    <button @onclick="NextBanner"
+            class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-3 rounded-full transition-all duration-300 hover:scale-110">
+        <i class="fas fa-chevron-right text-xl"></i>
+    </button>
+
+    <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-3">
+        @for (int i = 0; i < bannerImages.Count; i++)
+        {
+            var index = i;
+            <button @onclick="() => GoToBanner(index)"
+                    class="w-4 h-4 rounded-full transition-all duration-300 transform hover:scale-110 @(currentBannerIndex == index ? "bg-yellow-500 shadow-lg" : "bg-white/50 hover:bg-white/75")">
+            </button>
+        }
+    </div>
+
+    <button @onclick="ToggleBannerAutoPlay"
+            class="absolute top-4 right-4 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition-all duration-300 hover:scale-110">
+        <i class="fas @(isBannerAutoPlaying ? "fa-pause" : "fa-play")"></i>
+    </button>
+</section>
+
+<section class="py-20 bg-white">
+    <div class="container mx-auto px-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <div class="text-center p-8">
+                <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-edit text-4xl text-gray-600"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Personalizaciones</h3>
+                <p class="text-gray-600 text-base leading-relaxed">¡Elige el nombre y número del jugador que quieras de tu camiseta!</p>
             </div>
 
-            <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 leading-tight">
-                NUEVA COLECCIÓN<br>2025 - 2026
-            </h1>
-
-            <div class="text-white text-lg md:text-xl font-medium italic mb-6">
-                Lo mejor en equipamiento deportivo
+            <div class="text-center p-8">
+                <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-credit-card text-4xl text-gray-600"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Pago seguro</h3>
+                <p class="text-gray-600 text-base leading-relaxed">Su información de pago se procesa de forma rápida y segura. Ningún dato será almacenado por nosotros.</p>
             </div>
 
-            <a href="#" class="inline-block bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-full transition-transform transform hover:scale-105">
-                Ver colección
-            </a>
+            <div class="text-center p-8">
+                <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-sync-alt text-4xl text-gray-600"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Cambio de Temporada</h3>
+                <p class="text-gray-600 text-base leading-relaxed">¡Aprovecha el cambio de temporada! $1,950 x camisetas 2023/24.</p>
+            </div>
         </div>
     </div>
 </section>
 
-<section class="py-16 bg-gray-100">
+<section class="py-16 bg-gray-50">
     <div class="container mx-auto px-4">
-        <h2 class="section-title">CATEGORÍAS DESTACADAS</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <a href="/camisetas" class="category-card text-center p-6">
-                <img src="imagenes/camisetas/camiseta1.webp" alt="Camisetas" class="w-full h-40 object-contain mx-auto mb-4">
-                <h3 class="font-semibold text-lg text-gray-800">CAMISETAS</h3>
-                <p class="text-gray-600 mt-2">Últimos modelos</p>
-            </a>
-
-            <a href="/guantes" class="category-card text-center p-6">
-                <img src="imagenes/guantes/guantes1.webp" alt="Guantes" class="w-full h-40 object-contain mx-auto mb-4">
-                <h3 class="font-semibold text-lg text-gray-800">GUANTES</h3>
-                <p class="text-gray-600 mt-2">Para porteros</p>
-            </a>
-
-            <a href="/accesorios" class="category-card text-center p-6">
-                <img src="imagenes/accesorios/accesorio1.jpg" alt="Accesorios" class="w-full h-40 object-contain mx-auto mb-4">
-                <h3 class="font-semibold text-lg text-gray-800">ACCESORIOS</h3>
-                <p class="text-gray-600 mt-2">Complementos</p>
-            </a>
-
-            <a href="/botines" class="category-card text-center p-6">
-                <img src="imagenes/Botines/botines1.webp" alt="Botines" class="w-full h-40 object-contain mx-auto mb-4">
-                <h3 class="font-semibold text-lg text-gray-800">BOTINES</h3>
-                <p class="text-gray-600 mt-2">Para todas las superficies</p>
-            </a>
+        <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">Temporada 2025</h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">Descubre las últimas camisetas de los equipos más importantes del mundo</p>
+            <div class="flex justify-center mt-6">
+                <a href="/camisetas" class="text-yellow-600 hover:text-yellow-700 font-semibold text-lg flex items-center">
+                    Ver todas <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+            </div>
         </div>
+        @if (isLoadingCamisetas)
+        {
+            <div class="text-center py-8">
+                <p class="text-lg text-gray-700">Cargando camisetas...</p>
+                <div class="mt-4 animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900 mx-auto"></div>
+            </div>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                @foreach (var producto in camisetas)
+                {
+                    <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100">
+                        <a href="/productos/@producto.Id" class="block">
+                            <div class="relative w-full h-64 overflow-hidden p-4 flex items-center justify-center bg-gray-50">
+                                <img src="@producto.ImagenUrl"
+                                     alt="@producto.Nombre"
+                                     class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                                     onerror="this.onerror=null;this.src='https://placehold.co/400x400/E0E0E0/6C757D?text=Imagen+no+disponible';" />
+                                @if (producto.Descuento > 0)
+                                {
+                                    <div class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                        @((producto.Descuento * 100).ToString("0"))% OFF
+                                    </div>
+                                }
+                            </div>
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold text-gray-900 truncate mb-1">@producto.Nombre</h3>
+                                <p class="text-gray-600 text-sm mb-3">@producto.Categoria</p>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <span class="text-xl font-bold text-gray-900">@producto.Precio.ToString("C")</span>
+                                        @if (producto.Descuento > 0)
+                                        {
+                                            <span class="ml-2 text-md text-red-500 line-through">
+                                                @((producto.Precio / (1 - (decimal)producto.Descuento)).ToString("C"))
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                }
+            </div>
+        }
     </div>
 </section>
 
 <section class="py-16 bg-white">
     <div class="container mx-auto px-4">
-        <h2 class="section-title">PRODUCTOS DESTACADOS</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div class="product-card">
-                <div class="relative">
-                    <img src="imagenes/camisetas/camiseta5.webp" alt="Camiseta" class="product-image">
-                </div>
-                <div class="p-4">
-                    <div class="text-xs text-gray-500 mb-1">Equipo Famoso</div>
-                    <h3 class="font-semibold text-gray-800 mb-2">Camiseta Visitante 24/25</h3>
-                    <div class="flex items-center mb-2 rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star-half-alt"></i>
-                        <span class="text-gray-500 text-xs ml-1">(18)</span>
-                    </div>
-                    <div class="price">RD$ 2,299</div>
-                </div>
+        <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">Zapatillas</h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">El calzado perfecto para dominar el campo</p>
+            <div class="flex justify-center mt-6">
+                <a href="/botines" class="text-yellow-600 hover:text-yellow-700 font-semibold text-lg flex items-center">
+                    Ver más <i class="fas fa-arrow-right ml-2"></i>
+                </a>
             </div>
-
-            <div class="product-card">
-                <div class="relative">
-                    <img src="imagenes/guantes/guantes3.jpg" alt="Guantes" class="product-image">
-                </div>
-                <div class="p-4">
-                    <div class="text-xs text-gray-500 mb-1">Marca Especialista</div>
-                    <h3 class="font-semibold text-gray-800 mb-2">Guantes Ultra Grip</h3>
-                    <div class="flex items-center mb-2 rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="far fa-star"></i>
-                        <span class="text-gray-500 text-xs ml-1">(9)</span>
-                    </div>
-                    <div class="price">RD$ 5,199</div>
-                </div>
+        </div>
+        @if (isLoadingBotines)
+        {
+            <div class="text-center py-8">
+                <p class="text-lg text-gray-700">Cargando botines...</p>
+                <div class="mt-4 animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900 mx-auto"></div>
             </div>
-
-            <div class="product-card">
-                <div class="relative">
-                    <img src="imagenes/accesorios/accesorio5.jpg" alt="Accesorio" class="product-image">
-                </div>
-                <div class="p-4">
-                    <div class="text-xs text-gray-500 mb-1">Marca Deportiva</div>
-                    <h3 class="font-semibold text-gray-800 mb-2">Rodilleras Elite Pro</h3>
-                    <div class="flex items-center mb-2 rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <span class="text-gray-500 text-xs ml-1">(25)</span>
+        }
+        else
+        {
+            <div class="flex overflow-x-auto gap-8 py-4 px-2">
+                @foreach (var producto in botines)
+                {
+                    <div class="flex-none w-72 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100">
+                        <a href="/productos/@producto.Id" class="block">
+                            <div class="relative w-full h-64 overflow-hidden p-4 flex items-center justify-center bg-gray-50">
+                                <img src="@producto.ImagenUrl"
+                                     alt="@producto.Nombre"
+                                     class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                                     onerror="this.onerror=null;this.src='https://placehold.co/400x400/E0E0E0/6C757D?text=Imagen+no+disponible';" />
+                                @if (producto.Descuento > 0)
+                                {
+                                    <div class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                        @((producto.Descuento * 100).ToString("0"))% OFF
+                                    </div>
+                                }
+                            </div>
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold text-gray-900 truncate mb-1">@producto.Nombre</h3>
+                                <p class="text-gray-600 text-sm mb-3">@producto.Categoria</p>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <span class="text-xl font-bold text-gray-900">@producto.Precio.ToString("C")</span>
+                                        @if (producto.Descuento > 0)
+                                        {
+                                            <span class="ml-2 text-md text-red-500 line-through">
+                                                @((producto.Precio / (1 - (decimal)producto.Descuento)).ToString("C"))
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
                     </div>
-                    <div class="price">RD$ 1,499</div>
-                </div>
+                }
             </div>
+        }
+    </div>
+</section>
 
-            <div class="product-card">
-                <div class="relative">
-                    <img src="imagenes/Botines/botines4.webp" alt="Botines" class="product-image">
-                </div>
-                <div class="p-4">
-                    <div class="text-xs text-gray-500 mb-1">Marca Deportiva</div>
-                    <h3 class="font-semibold text-gray-800 mb-2">Botines Control Plus</h3>
-                    <div class="flex items-center mb-2 rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="far fa-star"></i>
-                        <span class="text-gray-500 text-xs ml-1">(11)</span>
+<section class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">Guantes de Portero</h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">La mejor protección y agarre para los porteros más exigentes</p>
+            <div class="flex justify-center mt-6">
+                <a href="/guantes" class="text-yellow-600 hover:text-yellow-700 font-semibold text-lg flex items-center">
+                    Ver más <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+            </div>
+        </div>
+        @if (isLoadingGuantes)
+        {
+            <div class="text-center py-8">
+                <p class="text-lg text-gray-700">Cargando guantes...</p>
+                <div class="mt-4 animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900 mx-auto"></div>
+            </div>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                @foreach (var producto in guantes)
+                {
+                    <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100">
+                        <a href="/productos/@producto.Id" class="block">
+                            <div class="relative w-full h-64 overflow-hidden p-4 flex items-center justify-center bg-gray-50">
+                                <img src="@producto.ImagenUrl"
+                                     alt="@producto.Nombre"
+                                     class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                                     onerror="this.onerror=null;this.src='https://placehold.co/400x400/E0E0E0/6C757D?text=Imagen+no+disponible';" />
+                                @if (producto.Descuento > 0)
+                                {
+                                    <div class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                        @((producto.Descuento * 100).ToString("0"))% OFF
+                                    </div>
+                                }
+                            </div>
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold text-gray-900 truncate mb-1">@producto.Nombre</h3>
+                                <p class="text-gray-600 text-sm mb-3">@producto.Categoria</p>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <span class="text-xl font-bold text-gray-900">@producto.Precio.ToString("C")</span>
+                                        @if (producto.Descuento > 0)
+                                        {
+                                            <span class="ml-2 text-md text-red-500 line-through">
+                                                @((producto.Precio / (1 - (decimal)producto.Descuento)).ToString("C"))
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
                     </div>
-                    <div class="price">RD$ 6,999</div>
+                }
+            </div>
+        }
+    </div>
+</section>
+
+<!-- Sección de Registro/Contacto -->
+<section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <!-- Contenido izquierdo -->
+                <div>
+                    <h2 class="text-4xl font-bold text-gray-800 mb-6">¿No encuentras una camiseta?</h2>
+                    <h3 class="text-2xl font-semibold text-gray-700 mb-8">Escríbenos:</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-search text-white text-lg"></i>
+                            </div>
+                            <p class="text-gray-600">Te ayudamos a encontrar exactamente lo que buscas</p>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-clock text-white text-lg"></i>
+                            </div>
+                            <p class="text-gray-600">Respuesta rápida en menos de 24 horas</p>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-star text-white text-lg"></i>
+                            </div>
+                            <p class="text-gray-600">Productos originales y de la mejor calidad</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulario derecho -->
+                <div class="bg-gray-50 rounded-xl p-8 shadow-lg">
+                    <EditForm Model="@contactForm" OnValidSubmit="@HandleValidSubmit">
+                        <DataAnnotationsValidator />
+                        <div class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="nombre" class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+                                    <InputText @bind-Value="contactForm.Nombre"
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300"
+                                               placeholder="Tu nombre" />
+                                    <ValidationMessage For="@(() => contactForm.Nombre)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                                <div>
+                                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Correo electrónico</label>
+                                    <InputText @bind-Value="contactForm.Email"
+                                               type="email"
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300"
+                                               placeholder="tu@email.com" />
+                                    <ValidationMessage For="@(() => contactForm.Email)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="mensaje" class="block text-sm font-medium text-gray-700 mb-2">Mensaje</label>
+                                <InputTextArea @bind-Value="contactForm.Mensaje"
+                                               rows="4"
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 resize-none"
+                                               placeholder="Describe la camiseta que buscas: equipo, temporada, talla, etc." />
+                                <ValidationMessage For="@(() => contactForm.Mensaje)" class="text-red-500 text-sm mt-1" />
+                            </div>
+
+                            <button type="submit"
+                                    disabled="@isSubmitting"
+                                    class="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 text-black font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:transform-none flex items-center justify-center">
+                                @if (isSubmitting)
+                                {
+                                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                                    <span>Enviando...</span>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-paper-plane mr-2"></i>
+                                    <span>Enviar mensaje</span>
+                                }
+                            </button>
+
+                            @if (!string.IsNullOrEmpty(submitMessage))
+                            {
+                                <div class="mt-4 p-4 rounded-lg @(submitSuccess ? "bg-green-100 text-green-700 border border-green-300" : "bg-red-100 text-red-700 border border-red-300")">
+                                    <div class="flex items-center">
+                                        <i class="fas @(submitSuccess ? "fa-check-circle" : "fa-exclamation-circle") mr-2"></i>
+                                        <span>@submitMessage</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </EditForm>
                 </div>
             </div>
         </div>
@@ -165,5 +398,258 @@
 </section>
 
 @code {
+    private List<BannerImage> bannerImages = new();
+    private int currentBannerIndex = 0;
+    private Timer? bannerTimer;
+    private bool isBannerAutoPlaying = true;
+    private int autoPlayInterval = 5000; 
 
+    private List<Producto> camisetas = new();
+    private List<Producto> botines = new();
+    private List<Producto> guantes = new();
+    private List<Producto> accesorios = new(); 
+
+    private bool isLoadingCamisetas = true;
+    private bool isLoadingBotines = true;
+    private bool isLoadingGuantes = true;
+    private bool isLoadingAccesorios = true; 
+
+    private ContactFormModel contactForm = new();
+    private bool isSubmitting = false;
+    private string submitMessage = "";
+    private bool submitSuccess = false;
+
+    public class BannerImage
+    {
+        public string ImageUrl { get; set; } = "";
+        public string AltText { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string? ButtonText { get; set; }
+        public string? ButtonUrl { get; set; }
+    }
+
+    public class ContactFormModel
+    {
+        [Required(ErrorMessage = "El nombre es requerido")]
+        [StringLength(100, ErrorMessage = "El nombre no puede exceder 100 caracteres")]
+        public string Nombre { get; set; } = "";
+
+        [Required(ErrorMessage = "El correo electrónico es requerido")]
+        [EmailAddress(ErrorMessage = "Ingrese un correo electrónico válido")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "El mensaje es requerido")]
+        [StringLength(1000, MinimumLength = 10, ErrorMessage = "El mensaje debe tener entre 10 y 1000 caracteres")]
+        public string Mensaje { get; set; } = "";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductsAsync();
+        bannerImages = new List<BannerImage>
+        {
+            new BannerImage
+            {
+                ImageUrl = "imagenes/banners/banner2.jpg",
+                AltText = "Nuevas Camisetas",
+                Title = "¡Nuevas Camisetas!",
+                Description = "Descubre las últimas camisetas de tus equipos favoritos",
+                ButtonText = "Ver Camisetas",
+                ButtonUrl = "/camisetas"
+            },
+            new BannerImage
+            {
+                ImageUrl = "imagenes/banners/banner4.jpg",
+                AltText = "Botines Profesionales",
+                Title = "Botines Profesionales",
+                Description = "La mejor calidad para elevar tu juego al siguiente nivel",
+                ButtonText = "Ver Botines",
+                ButtonUrl = "/botines"
+            },
+            new BannerImage
+            {
+                ImageUrl = "imagenes/banners/banner3.jpg",
+                AltText = "Guantes de Portero",
+                Title = "Guantes de Portero",
+                Description = "Protección y agarre excepcional para los mejores arqueros",
+                ButtonText = "Ver Guantes",
+                ButtonUrl = "/guantes"
+            },
+            new BannerImage
+            {
+                ImageUrl = "imagenes/banners/banner1.jpg",
+                AltText = "Accesorios",
+                Title = "Accesorios Deportivos",
+                Description = "Completa tu equipamiento con los mejores accesorios",
+                ButtonText = "Ver Accesorios",
+                ButtonUrl = "/accesorios"
+            },
+            new BannerImage
+            {
+                ImageUrl = "imagenes/banners/banner5.jpg",
+                AltText = "Ofertas Especiales",
+                Title = "Ofertas Especiales",
+                Description = "No te pierdas nuestras increíbles promociones",
+                ButtonText = "Ver Ofertas",
+                ButtonUrl = "/novedades"
+            },
+            new BannerImage
+            {
+                ImageUrl = "imagenes/banners/banner6.webp",
+                AltText = "Ofertas Especiales",
+                Title = "Ofertas Especiales",
+                Description = "No te pierdas nuestras increíbles promociones",
+                ButtonText = "Ver Ofertas",
+                ButtonUrl = "/novedades"
+            }
+        };
+
+        StartBannerAutoPlay();
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        isLoadingCamisetas = true;
+        isLoadingBotines = true;
+        isLoadingGuantes = true;
+
+        try
+        {
+            camisetas = await DbContext.Productos
+                .Where(p => p.Categoria == "Camisetas")
+                .OrderByDescending(p => p.FechaCreacion)
+                .Take(8)
+                .ToListAsync();
+            isLoadingCamisetas = false;
+
+            botines = await DbContext.Productos
+                .Where(p => p.Categoria == "Botines")
+                .OrderByDescending(p => p.FechaCreacion)
+                .ToListAsync();
+            isLoadingBotines = false;
+
+            guantes = await DbContext.Productos
+                .Where(p => p.Categoria == "Guantes")
+                .OrderByDescending(p => p.FechaCreacion)
+                .Take(4)
+                .ToListAsync();
+            isLoadingGuantes = false;
+        }
+        catch (Exception ex)
+        {
+
+            isLoadingCamisetas = false;
+            isLoadingBotines = false;
+            isLoadingGuantes = false;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        isSubmitting = true;
+        submitMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(1500); 
+
+            bool emailSent = await SendContactEmail(contactForm);
+
+            if (emailSent)
+            {
+                submitSuccess = true;
+                submitMessage = "¡Mensaje enviado correctamente! Te contactaremos pronto.";
+                contactForm = new ContactFormModel();
+            }
+            else
+            {
+                submitSuccess = false;
+                submitMessage = "Error al enviar el mensaje. Por favor, inténtalo de nuevo.";
+            }
+        }
+        catch (Exception ex)
+        {
+            submitSuccess = false;
+            submitMessage = "Error al procesar la solicitud. Por favor, inténtalo más tarde.";
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(5000);
+                await InvokeAsync(() =>
+                {
+                    submitMessage = "";
+                    StateHasChanged();
+                });
+            });
+        }
+    }
+
+    private async Task<bool> SendContactEmail(ContactFormModel form)
+    {
+        await Task.Delay(100);
+        return true;
+    }
+
+    private void StartBannerAutoPlay()
+    {
+        if (isBannerAutoPlaying && bannerImages.Count > 1)
+        {
+            bannerTimer = new Timer(autoPlayInterval);
+            bannerTimer.Elapsed += OnBannerTimerElapsed;
+            bannerTimer.AutoReset = true;
+            bannerTimer.Enabled = true;
+        }
+    }
+
+    private async void OnBannerTimerElapsed(object? sender, ElapsedEventArgs e)
+    {
+        await InvokeAsync(() =>
+        {
+            NextBanner();
+            StateHasChanged();
+        });
+    }
+
+    private void NextBanner()
+    {
+        currentBannerIndex = (currentBannerIndex + 1) % bannerImages.Count;
+    }
+
+    private void PreviousBanner()
+    {
+        currentBannerIndex = currentBannerIndex == 0 ? bannerImages.Count - 1 : currentBannerIndex - 1;
+    }
+
+    private void GoToBanner(int index)
+    {
+        currentBannerIndex = index;
+    }
+
+    private void ToggleBannerAutoPlay()
+    {
+        isBannerAutoPlaying = !isBannerAutoPlaying;
+
+        if (isBannerAutoPlaying)
+        {
+            StartBannerAutoPlay();
+        }
+        else
+        {
+            bannerTimer?.Stop();
+            bannerTimer?.Dispose();
+            bannerTimer = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        bannerTimer?.Stop();
+        bannerTimer?.Dispose();
+    }
 }

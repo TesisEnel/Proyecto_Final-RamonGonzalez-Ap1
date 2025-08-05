@@ -7,18 +7,17 @@ namespace Proyecto_Final.Models.Producto
     {
         public int Id { get; set; }
 
-        
         public int ProductoId { get; set; }
         [ForeignKey("ProductoId")]
-        public Producto Producto { get; set; } 
+        public Producto Producto { get; set; }
 
         [Required(ErrorMessage = "El tipo de atributo es obligatorio (ej. Talla, Color).")]
         [StringLength(50, ErrorMessage = "El tipo de atributo no puede exceder los 50 caracteres.")]
-        public string TipoAtributo { get; set; } 
+        public string TipoAtributo { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El valor del atributo es obligatorio (ej. S, M, L, Rojo, Azul).")]
         [StringLength(50, ErrorMessage = "El valor del atributo no puede exceder los 50 caracteres.")]
-        public string ValorAtributo { get; set; } 
+        public string ValorAtributo { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El stock es obligatorio.")]
         [Range(0, int.MaxValue, ErrorMessage = "El stock no puede ser negativo.")]

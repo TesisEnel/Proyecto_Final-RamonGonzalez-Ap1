@@ -11,152 +11,246 @@
 @inject ApplicationDbContext DbContext
 @inject UserManager<ApplicationUser> UserManager
 @inject ILogger<Perfil> Logger
+@inject IJSRuntime JSRuntime
 
-@attribute [Authorize] 
+@attribute [Authorize]
 
 <PageTitle>Mi Perfil - Golazo Store</PageTitle>
 
-<div class="container mx-auto px-4 py-8">
-    @if (!string.IsNullOrEmpty(errorMessage))
-    {
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-            <strong class="font-bold">Error:</strong>
-            <span class="block sm:inline">@errorMessage</span>
-        </div>
-    }
-    @if (currentUser != null)
-    {
-        <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">Hola, @currentUser.NombreCompleto!</h1>
-        <p class="text-lg text-gray-700 text-center mb-8">
-            Bienvenido a tu perfil. Tu rol es:
-            <span class="font-semibold capitalize">@string.Join(", ", userRoles)</span>.
-        </p>
-
-        <div class="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800">Información de la Cuenta</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                    <p class="mb-2"><span class="font-semibold">Email:</span> @currentUser.Email</p>
-                    <p class="mb-2"><span class="font-semibold">Nombre Completo:</span> @currentUser.NombreCompleto</p>
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg" role="alert">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium">Error</h3>
+                        <p class="text-sm mt-1">@errorMessage</p>
+                    </div>
                 </div>
-                <div>
-                    <p class="mb-2"><span class="font-semibold">Teléfono:</span> @(currentUser.PhoneNumber ?? "No registrado")</p>
-                    <p class="mb-2"><span class="font-semibold">Fecha de Registro:</span> @currentUser.FechaRegistro.ToLocalTime().ToString("dd/MM/yyyy")</p>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(statusMessage))
+        {
+            <div class="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg" role="alert">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1.414-9.586a1 1 0 011.414 0L10 10.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium">Éxito</h3>
+                        <p class="text-sm mt-1">@statusMessage</p>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (isLoading)
+        {
+            <div class="flex flex-col items-center justify-center py-20">
+                <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-500"></div>
+                <p class="mt-4 text-gray-600 font-medium">Cargando tu perfil...</p>
+            </div>
+        }
+        else if (currentUser != null)
+        {
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
+                        @(currentUser.NombreCompleto?.Substring(0, 1).ToUpper() ?? "U")
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">@currentUser.NombreCompleto</h1>
+                        <p class="text-gray-500">@currentUser.Email</p>
+                        <div class="flex items-center mt-1">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                @(string.Join(", ", userRoles.Any() ? userRoles : new List<string> { "Cliente" }))
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <h3 class="text-xl font-bold mt-8 mb-4">Mis Direcciones</h3>
-            @if (currentUser.Direcciones != null && currentUser.Direcciones.Any())
-            {
-                <ul class="space-y-3">
-                    @foreach (var direccion in currentUser.Direcciones)
-                    {
-                        <li class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <p class="font-medium">Dirección @(currentUser.Direcciones.IndexOf(direccion) + 1)</p>
-                            <p>@direccion.Calle, @direccion.Ciudad</p>
-                            <p>@direccion.Estado, @direccion.CodigoPostal</p>
-                            <p>@direccion.Pais</p>
-                        </li>
-                    }
-                </ul>
-                <button class="mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
-                    + Añadir nueva dirección
-                </button>
-            }
-            else
-            {
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
-                    <p class="text-gray-600 mb-2">No tienes direcciones registradas</p>
-                    <button class="text-blue-600 hover:text-blue-800 font-medium">
-                        Añadir mi primera dirección
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">Mis Direcciones</h2>
+                    <button @onclick="NavegarARegistroDireccion" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-black bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Añadir dirección
                     </button>
                 </div>
-            }
 
-            <h3 class="text-xl font-bold mt-8 mb-4">Historial de Pedidos</h3>
-            @if (currentUser.Pedidos != null && currentUser.Pedidos.Any())
-            {
-                <div class="overflow-x-auto">
-                    <table class="min-w-full bg-white">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="py-2 px-4 text-left">N° Pedido</th>
-                                <th class="py-2 px-4 text-left">Fecha</th>
-                                <th class="py-2 px-4 text-left">Estado</th>
-                                <th class="py-2 px-4 text-right">Total</th>
-                                <th class="py-2 px-4"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var pedido in currentUser.Pedidos.OrderByDescending(p => p.FechaPedido))
-                            {
-                                <tr class="border-b border-gray-200 hover:bg-gray-50">
-                                    <td class="py-3 px-4">#@pedido.Id</td>
-                                    <td class="py-3 px-4">@pedido.FechaPedido.ToString("dd/MM/yyyy")</td>
-                                    <td class="py-3 px-4">
-                                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                                            Completado
-                                        </span>
-                                    </td>
-                                    <td class="py-3 px-4 text-right font-medium">@pedido.Total.ToString("C")</td>
-                                    <td class="py-3 px-4 text-right">
-                                        <button class="text-blue-600 hover:text-blue-800 text-sm">
+                @if (currentUser.Direcciones != null && currentUser.Direcciones.Any())
+                {
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @foreach (var direccion in currentUser.Direcciones.OrderByDescending(d => d.EsPrincipal))
+                        {
+                            <div class="relative border border-gray-200 rounded-lg p-4 transition-shadow hover:shadow-md">
+                                @if (direccion.EsPrincipal)
+                                {
+                                    <span class="absolute top-2 right-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        Principal
+                                    </span>
+                                }
+                                <div class="flex items-start space-x-3">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h3 class="font-medium text-gray-900">@direccion.Nombre @direccion.Apellido</h3>
+                                        <p class="text-sm text-gray-600">@direccion.Telefono</p>
+                                        <p class="text-sm text-gray-600 mt-1">@direccion.Calle</p>
+                                        <p class="text-sm text-gray-600">@direccion.Ciudad, @direccion.Estado</p>
+                                        <p class="text-sm text-gray-600">@direccion.CodigoPostal, @direccion.Pais</p>
+                                    </div>
+                                </div>
+                                <div class="absolute bottom-2 right-2 flex space-x-2">
+                                    <button @onclick="() => NavegarAEditarDireccion(direccion.Id)" class="text-blue-600 hover:text-blue-800 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L15.232 5.232z"></path>
+                                        </svg>
+                                    </button>
+                                    <button @onclick="() => EliminarDireccion(direccion.Id)" class="text-red-600 hover:text-red-800 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-8">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No tienes direcciones guardadas</h3>
+                        <p class="mt-1 text-sm text-gray-500">Añade una dirección para facilitar tus compras</p>
+                        <div class="mt-4">
+                            <button @onclick="NavegarARegistroDireccion" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-black bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                                Añadir mi primera dirección
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Historial de Pedidos</h2>
+
+                @if (currentUser.Pedidos != null && currentUser.Pedidos.Any())
+                {
+                    <div class="space-y-4">
+                        @foreach (var pedido in currentUser.Pedidos.OrderByDescending(p => p.FechaPedido))
+                        {
+                            <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-medium text-gray-900">Pedido #@pedido.Id</h3>
+                                            <p class="text-sm text-gray-500">@pedido.FechaPedido.ToString("dd/MM/yyyy HH:mm")</p>
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @GetEstadoBadgeClass(pedido.Estado)">
+                                                @pedido.Estado
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-lg font-semibold text-gray-900">@pedido.Total.ToString("C")</p>
+                                        <a href="/pedidos/detalle/@pedido.Id" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                                             Ver detalle
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
-                    <p class="text-gray-600 mb-2">Aún no has realizado ningún pedido</p>
-                    <NavLink href="/productos" class="text-blue-600 hover:text-blue-800 font-medium">
-                        Ver productos disponibles
-                    </NavLink>
-                </div>
-            }
-        </div>
-    }
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-8">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">Aún no has hecho ningún pedido</h3>
+                        <p class="mt-1 text-sm text-gray-500">Comienza explorando nuestros productos</p>
+                        <div class="mt-4">
+                            <NavLink href="/productos" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-black bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                                Seguir comprando
+                            </NavLink>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
 </div>
 
 @code {
-    private ApplicationUser currentUser;
+    private ApplicationUser? currentUser;
     private IList<string> userRoles = new List<string>();
-    private string errorMessage;
+    private string? errorMessage;
+    private string? statusMessage;
+    private bool isLoading = true;
 
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private Task<AuthenticationState> authenticationStateTask { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadUserProfile();
+    }
+
+    private async Task LoadUserProfile()
+    {
+        isLoading = true;
+        errorMessage = null;
+        statusMessage = null;
         try
         {
             var authState = await authenticationStateTask;
             var user = authState.User;
-
             var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
             if (!string.IsNullOrEmpty(userId))
             {
                 currentUser = await DbContext.Users
                     .AsNoTracking()
-                    .Include(u => u.Direcciones)
+                    .Include(u => u.Direcciones.OrderByDescending(d => d.EsPrincipal))
                     .Include(u => u.Pedidos)
                         .ThenInclude(p => p.Detalles)
                     .FirstOrDefaultAsync(u => u.Id == userId);
 
                 if (currentUser != null)
+                {
                     userRoles = await UserManager.GetRolesAsync(currentUser);
+                }
                 else
+                {
                     errorMessage = "No se pudo cargar la información del usuario.";
+                }
             }
             else
             {
-               
                 errorMessage = "No se pudo identificar al usuario autenticado.";
             }
         }
@@ -165,5 +259,77 @@
             errorMessage = "Ocurrió un error al cargar tu perfil. Por favor intenta más tarde.";
             Logger.LogError(ex, "Error al cargar perfil del usuario");
         }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void NavegarARegistroDireccion()
+    {
+        NavManager.NavigateTo("/Registrodireccion");
+    }
+
+    private void NavegarAEditarDireccion(int id)
+    {
+        NavManager.NavigateTo($"/Registrodireccion/{id}");
+    }
+
+    private async Task EliminarDireccion(int id)
+    {
+        bool confirmed = false;
+        try
+        {
+            confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Estás seguro que deseas eliminar esta dirección?");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al invocar la confirmación de JS");
+        }
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            var direccion = await DbContext.DireccionesEnvio.FindAsync(id);
+
+            if (direccion != null && direccion.UsuarioId == currentUser!.Id)
+            {
+                DbContext.DireccionesEnvio.Remove(direccion);
+                await DbContext.SaveChangesAsync();
+                statusMessage = "¡Dirección eliminada con éxito!";
+                await LoadUserProfile();
+            }
+            else
+            {
+                errorMessage = "No se pudo encontrar la dirección o no tienes permiso para eliminarla.";
+            }
+        }
+        catch (DbUpdateException ex)
+        {
+            errorMessage = "Ocurrió un error en la base de datos al eliminar la dirección. Es posible que existan dependencias.";
+            Logger.LogError(ex, "Error de DbUpdateException al eliminar la dirección");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Ocurrió un error inesperado al eliminar la dirección. Por favor, intenta de nuevo.";
+            Logger.LogError(ex, "Error inesperado al eliminar la dirección");
+        }
+    }
+
+    private string GetEstadoBadgeClass(string estado)
+    {
+        return estado switch
+        {
+            "Procesando" => "bg-yellow-100 text-yellow-800",
+            "Enviado" => "bg-blue-100 text-blue-800",
+            "Completado" => "bg-green-100 text-green-800",
+            "Cancelado" => "bg-red-100 text-red-800",
+            _ => "bg-gray-100 text-gray-800"
+        };
     }
 }

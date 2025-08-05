@@ -1,0 +1,482 @@
+﻿@page "/checkout"
+@rendermode InteractiveServer
+
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Proyecto_Final.Data
+@using Proyecto_Final.Models.Carrito
+@using Proyecto_Final.Models.Usuario
+@using Proyecto_Final.Models.Pedidos
+@using Proyecto_Final.Models.Producto
+@using Proyecto_Final.Services
+@inject ICarritoService CarritoService
+@inject IAnonymousCartService AnonymousCartService
+@inject NavigationManager NavManager
+@inject ILogger<FinalizarCompra> Logger
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ApplicationDbContext DbContext
+@inject UserManager<ApplicationUser> UserManager
+
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2">
+            <div class="bg-white p-8 rounded-xl shadow-md border border-gray-200">
+                <h1 class="text-3xl font-bold mb-2 text-gray-800">Finalizar Compra</h1>
+                <p class="text-gray-500 mb-8">Todas las transacciones son seguras y están encriptadas.</p>
+                <div class="flex items-center gap-2 mb-6">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" class="h-6 object-contain" />
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/MasterCard_Logo.svg" alt="Mastercard" class="h-6 object-contain" />
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/American_Express_logo_%282018%29.svg/1200px-American_Express_logo_%282018%29.svg.png" alt="American Express" class="h-6 object-contain" />
+                </div>
+
+                @if (isLoading)
+                {
+                    <div class="flex justify-center items-center h-64">
+                        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-500"></div>
+                    </div>
+                }
+                else if (pagoExitoso)
+                {
+                    <div class="flex items-center justify-center p-8 text-center">
+                        <div>
+                            <svg class="mx-auto h-24 w-24 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <h2 class="text-3xl font-bold text-gray-800 mt-4 mb-2">¡Pago Exitoso!</h2>
+                            <p class="text-gray-600 mb-6">Tu pedido ha sido procesado correctamente. ¡Gracias por tu compra!</p>
+                            <a href="/" class="bg-black hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300 inline-block">Continuar comprando</a>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                            <span class="block sm:inline">@errorMessage</span>
+                        </div>
+                    }
+
+                    <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
+                        <DataAnnotationsValidator />
+                        <h2 class="text-2xl font-bold mb-4 text-gray-800">Tarjeta de crédito</h2>
+                        <div class="grid grid-cols-1 gap-6 mb-8">
+                            <div>
+                                <label for="cardNumber" class="block text-sm font-medium text-gray-700 mb-1">Número de tarjeta</label>
+                                <div class="relative">
+                                    <InputText id="cardNumber" @bind-Value="Input.NumeroTarjeta" class="w-full px-4 py-3 pr-10 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" placeholder="Número de tarjeta" />
+                                    <i class="fas fa-credit-card absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <ValidationMessage For="@(() => Input.NumeroTarjeta)" class="text-red-500 text-sm mt-1" />
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="expiryDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha de vencimiento (MM / AA)</label>
+                                    <InputText id="expiryDate" @bind-Value="Input.FechaVencimiento" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" placeholder="MM / AA" />
+                                    <ValidationMessage For="@(() => Input.FechaVencimiento)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                                <div>
+                                    <label for="cvv" class="block text-sm font-medium text-gray-700 mb-1">Código de seguridad</label>
+                                    <InputText id="cvv" @bind-Value="Input.CVV" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" placeholder="CVV" />
+                                    <ValidationMessage For="@(() => Input.CVV)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                            </div>
+                            <div>
+                                <label for="cardName" class="block text-sm font-medium text-gray-700 mb-1">Nombre del titular</label>
+                                <InputText id="cardName" @bind-Value="Input.NombreTitular" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" placeholder="Nombre completo" />
+                                <ValidationMessage For="@(() => Input.NombreTitular)" class="text-red-500 text-sm mt-1" />
+                            </div>
+                        </div>
+
+                        <h2 class="text-2xl font-bold mb-4 text-gray-800">Dirección de facturación</h2>
+
+                        <div class="flex items-center mb-6">
+                            <InputCheckbox id="useShippingAsBilling" @bind-Value="useShippingAsBilling" />
+                            <label for="useShippingAsBilling" class="ml-2 block text-sm font-medium text-gray-700">
+                                Usar la dirección de envío como dirección de facturación
+                            </label>
+                        </div>
+
+                        @if (!useShippingAsBilling)
+                        {
+                            <div class="space-y-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="nombreFacturacion" class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                                        <InputText id="nombreFacturacion" @bind-Value="Input.Nombre" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" disabled="@useShippingAsBilling" />
+                                        <ValidationMessage For="@(() => Input.Nombre)" class="text-red-500 text-sm mt-1" />
+                                    </div>
+                                    <div>
+                                        <label for="apellidoFacturacion" class="block text-sm font-medium text-gray-700 mb-1">Apellidos *</label>
+                                        <InputText id="apellidoFacturacion" @bind-Value="Input.Apellido" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" disabled="@useShippingAsBilling" />
+                                        <ValidationMessage For="@(() => Input.Apellido)" class="text-red-500 text-sm mt-1" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="calle" class="block text-sm font-medium text-gray-700 mb-1">Calle *</label>
+                                    <InputText id="calle" @bind-Value="Input.Calle" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" placeholder="Ej. Calle Principal #123" disabled="@useShippingAsBilling" />
+                                    <ValidationMessage For="@(() => Input.Calle)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                                <div>
+                                    <label for="ciudad" class="block text-sm font-medium text-gray-700 mb-1">Ciudad *</label>
+                                    <InputText id="ciudad" @bind-Value="Input.Ciudad" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" placeholder="Ej. Santiago de los Caballeros" disabled="@useShippingAsBilling" />
+                                    <ValidationMessage For="@(() => Input.Ciudad)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                                <div>
+                                    <label for="estado" class="block text-sm font-medium text-gray-700 mb-1">Provincia *</label>
+                                    <InputSelect id="estado" @bind-Value="Input.Estado" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" disabled="@useShippingAsBilling">
+                                        <option value="">Selecciona una provincia</option>
+                                        @foreach (var provincia in provinciasRD)
+                                        {
+                                            <option value="@provincia">@provincia</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => Input.Estado)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="codigoPostal" class="block text-sm font-medium text-gray-700 mb-1">Código postal *</label>
+                                        <InputText id="codigoPostal" @bind-Value="Input.CodigoPostal" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" disabled="@useShippingAsBilling" />
+                                        <ValidationMessage For="@(() => Input.CodigoPostal)" class="text-red-500 text-sm mt-1" />
+                                    </div>
+                                    <div>
+                                        <label for="pais" class="block text-sm font-medium text-gray-700 mb-1">País / Región *</label>
+                                        <InputSelect id="pais" @bind-Value="Input.Pais" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" disabled="@useShippingAsBilling">
+                                            <option value="República Dominicana">República Dominicana</option>
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => Input.Pais)" class="text-red-500 text-sm mt-1" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="telefono" class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                                    <InputText id="telefono" @bind-Value="Input.Telefono" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" placeholder="(Opcional)" disabled="@useShippingAsBilling" />
+                                </div>
+                            </div>
+                        }
+
+                        <div class="mt-8">
+                            <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-4 rounded-lg transition-colors duration-300">
+                                Pagar ahora
+                            </button>
+                        </div>
+                    </EditForm>
+                }
+            </div>
+        </div>
+
+        <div class="lg:col-span-1">
+            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200 sticky top-4">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Resumen del Pedido</h2>
+                @if (carritoItems != null && carritoItems.Any())
+                {
+                    <div class="space-y-4 mb-4">
+                        @foreach (var item in carritoItems)
+                        {
+                            <div class="flex items-center space-x-4">
+                                <div class="relative">
+                                    <img src="@item.Producto.ImagenUrl" alt="@item.Producto.Nombre" class="w-16 h-16 object-cover rounded-md border border-gray-200" onerror="this.onerror=null;this.src='https://placehold.co/100x100/E0E0E0/6C757D?text=No+img';" />
+                                    <span class="absolute -top-2 -right-2 bg-gray-800 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                                        @item.Cantidad
+                                    </span>
+                                </div>
+                                <div class="flex-grow">
+                                    <h3 class="text-sm font-bold">@item.Producto.Nombre</h3>
+                                    <p class="text-xs text-gray-500">@item.ProductoVariacion.ValorAtributo</p>
+                                </div>
+                                <span class="font-semibold text-gray-800">@((item.Cantidad * item.Producto.Precio).ToString("C"))</span>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="descuento" class="block text-sm font-medium text-gray-700 mb-1">Código de descuento o tarjeta de regalo</label>
+                        <div class="flex">
+                            <InputText id="descuento" @bind-Value="Input.CodigoDescuento" class="flex-grow px-4 py-2 border rounded-l-lg focus:ring-yellow-500 focus:border-yellow-500" />
+                            <button class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-r-lg transition-colors duration-300">Aplicar</button>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600">Subtotal</span>
+                        <span class="font-semibold">@subtotal.ToString("C")</span>
+                    </div>
+                    <div class="flex justify-between mb-4">
+                        <span class="text-gray-600">Envío</span>
+                        <span class="font-semibold">Gratis</span>
+                    </div>
+                    <hr class="border-gray-200 mb-4">
+                    <div class="flex justify-between items-center text-2xl font-bold">
+                        <span>Total</span>
+                        <span>@subtotal.ToString("C")</span>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-gray-500 text-center py-4">Tu carrito está vacío.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    private List<CarritoItem>? carritoItems;
+    private bool isLoading = true;
+    private string? usuarioId;
+    private bool isLoggedIn = false;
+    private DireccionEnvio? defaultAddress;
+    private ApplicationUser? currentUser;
+    private bool pagoExitoso = false; // Nueva variable para controlar el mensaje de éxito
+
+    private bool useShippingAsBilling
+    {
+        get => _useShippingAsBilling;
+        set
+        {
+            _useShippingAsBilling = value;
+            OnUseShippingAsBillingChanged();
+        }
+    }
+    private bool _useShippingAsBilling = false;
+    private string? errorMessage;
+    private decimal subtotal => carritoItems?.Sum(item => item.Cantidad * (item.Producto?.Precio * (1 - item.Producto?.Descuento ?? 0) ?? 0)) ?? 0;
+
+    private readonly List<string> provinciasRD = new List<string>
+    {
+        "Azua", "Bahoruco", "Barahóna", "Dajabón", "Distrito Nacional",
+        "Duarte", "Elías Piña", "El Seibo", "Espaillat", "Hato Mayor",
+        "Hermanas Mirabal", "Independencia", "La Altagracia", "La Romana",
+        "La Vega", "María Trinidad Sánchez", "Monseñor Nouel", "Monte Cristi",
+        "Monte Plata", "Pedernales", "Peravia", "Puerto Plata", "Samaná",
+        "Sánchez Ramírez", "San Cristóbal", "San José de Ocoa", "San Juan",
+        "San Pedro de Macorís", "Santiago", "Santiago Rodríguez", "Santo Domingo",
+        "Valverde"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAuthenticationStateAsync();
+        await LoadCartAsync();
+        if (isLoggedIn && !string.IsNullOrEmpty(usuarioId))
+        {
+            await LoadUserDataAsync();
+        }
+    }
+
+    private async Task LoadAuthenticationStateAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isLoggedIn = user.Identity?.IsAuthenticated ?? false;
+        usuarioId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private async Task LoadCartAsync()
+    {
+        isLoading = true;
+        try
+        {
+            if (isLoggedIn && !string.IsNullOrEmpty(usuarioId))
+            {
+                carritoItems = await CarritoService.ObtenerItemsDelCarritoAsync(usuarioId);
+            }
+            else
+            {
+                carritoItems = await AnonymousCartService.GetAnonymousCartItemsAsync();
+            }
+
+            if (carritoItems == null || !carritoItems.Any())
+            {
+                errorMessage = "Tu carrito está vacío. Por favor, añade productos antes de finalizar la compra.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar el carrito para la página de checkout.");
+            errorMessage = "Hubo un error al cargar su carrito. Por favor, intente de nuevo.";
+            carritoItems = new List<CarritoItem>();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadUserDataAsync()
+    {
+        if (string.IsNullOrEmpty(usuarioId)) return;
+
+        defaultAddress = await DbContext.DireccionesEnvio
+          .Where(d => d.UsuarioId == usuarioId && d.EsPrincipal)
+          .FirstOrDefaultAsync();
+
+        currentUser = await UserManager.FindByIdAsync(usuarioId);
+    }
+
+    private void OnUseShippingAsBillingChanged()
+    {
+        if (useShippingAsBilling && defaultAddress != null && currentUser != null)
+        {
+            Input.Nombre = currentUser.Nombre ?? string.Empty;
+            Input.Apellido = currentUser.Apellido ?? string.Empty;
+            Input.Calle = defaultAddress.Calle ?? string.Empty;
+            Input.Ciudad = defaultAddress.Ciudad ?? string.Empty;
+            Input.Estado = defaultAddress.Estado ?? string.Empty;
+            Input.CodigoPostal = defaultAddress.CodigoPostal ?? string.Empty;
+            Input.Pais = defaultAddress.Pais ?? "República Dominicana";
+        }
+        else
+        {
+            Input.Nombre = string.Empty;
+            Input.Apellido = string.Empty;
+            Input.Calle = string.Empty;
+            Input.Ciudad = string.Empty;
+            Input.Estado = string.Empty;
+            Input.CodigoPostal = string.Empty;
+            Input.Pais = "República Dominicana";
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            if (carritoItems == null || !carritoItems.Any())
+            {
+                errorMessage = "Tu carrito está vacío. No puedes finalizar la compra.";
+                return;
+            }
+
+            // Simulación de un pago exitoso
+            await Task.Delay(1500);
+
+            await FinalizarPedidoAsync();
+
+            if (!isLoggedIn)
+            {
+                await AnonymousCartService.ClearAnonymousCartAsync();
+            }
+
+            // Establece la variable para mostrar el mensaje de éxito
+            pagoExitoso = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al finalizar el pedido.");
+            errorMessage = $"Ocurrió un error al procesar tu compra: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task FinalizarPedidoAsync()
+    {
+        if (string.IsNullOrEmpty(usuarioId))
+        {
+            throw new InvalidOperationException("El usuario no está autenticado.");
+        }
+
+        var nuevoPedido = new Pedido
+        {
+            UsuarioId = usuarioId,
+            FechaPedido = DateTime.UtcNow,
+            Total = subtotal,
+            Estado = "Procesando",
+            NombreEnvio = Input.Nombre,
+            ApellidoEnvio = Input.Apellido,
+            CalleEnvio = Input.Calle,
+            CiudadEnvio = Input.Ciudad,
+            EstadoEnvio = Input.Estado,
+            CodigoPostalEnvio = Input.CodigoPostal,
+            PaisEnvio = Input.Pais,
+            TelefonoEnvio = Input.Telefono
+        };
+
+        var detallesPedido = new List<DetallePedido>();
+        foreach (var item in carritoItems!)
+        {
+            var productoVariacion = await DbContext.ProductoVariaciones
+              .FirstOrDefaultAsync(pv => pv.Id == item.ProductoVariacionId);
+
+            if (productoVariacion == null || productoVariacion.Stock < item.Cantidad)
+            {
+                throw new InvalidOperationException($"Stock insuficiente para el producto {item.Producto.Nombre} ({item.ProductoVariacion.ValorAtributo}).");
+            }
+
+            detallesPedido.Add(new DetallePedido
+            {
+                Pedido = nuevoPedido,
+                ProductoId = item.ProductoId,
+                Cantidad = item.Cantidad,
+                PrecioUnitario = item.Producto.Precio * (1 - item.Producto.Descuento)
+            });
+
+            productoVariacion.Stock -= item.Cantidad;
+        }
+
+        nuevoPedido.Detalles = detallesPedido;
+        DbContext.Pedidos.Add(nuevoPedido);
+
+        var carritoDelUsuario = await DbContext.Carritos
+      .Include(c => c.Items)
+      .FirstOrDefaultAsync(c => c.UsuarioId == usuarioId);
+
+        if (carritoDelUsuario != null)
+        {
+            DbContext.CarritoItems.RemoveRange(carritoDelUsuario.Items);
+        }
+
+        await DbContext.SaveChangesAsync();
+        Logger.LogInformation($"Pedido {nuevoPedido.Id} creado exitosamente para el usuario {usuarioId}.");
+    }
+
+    private class InputModel
+    {
+        [Required(ErrorMessage = "El número de tarjeta es obligatorio.")]
+        [StringLength(19, MinimumLength = 16, ErrorMessage = "Número de tarjeta inválido.")]
+        public string NumeroTarjeta { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La fecha de vencimiento es obligatoria.")]
+        public string FechaVencimiento { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El código de seguridad es obligatorio.")]
+        [StringLength(4, MinimumLength = 3, ErrorMessage = "CVV inválido.")]
+        public string CVV { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El nombre del titular es obligatorio.")]
+        public string NombreTitular { get; set; } = string.Empty;
+
+        public string Nombre { get; set; } = string.Empty;
+
+        public string Apellido { get; set; } = string.Empty;
+
+        public string Calle { get; set; } = string.Empty;
+
+        public string Ciudad { get; set; } = string.Empty;
+
+        public string Estado { get; set; } = string.Empty;
+
+        public string CodigoPostal { get; set; } = string.Empty;
+
+        public string Pais { get; set; } = "República Dominicana";
+
+        public string Telefono { get; set; } = string.Empty;
+        public string CodigoDescuento { get; set; } = string.Empty;
+    }
+}

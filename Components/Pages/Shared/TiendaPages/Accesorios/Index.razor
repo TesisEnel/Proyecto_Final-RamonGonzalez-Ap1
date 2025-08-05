@@ -1,19 +1,373 @@
 ﻿@page "/accesorios"
+@rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@using Proyecto_Final.Data
+@using Proyecto_Final.Models.Producto
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ApplicationDbContext DbContext
+@inject ILogger<Index> Logger
 
 <PageTitle>Accesorios - Golazo Store</PageTitle>
 
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">Accesorios Esenciales</h1>
+<div class="pt-16 min-h-screen bg-white">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-5xl font-bold text-center mb-8 text-gray-800">Accesorios</h1>
 
-    <p class="text-lg text-gray-700 text-center mb-8">
-        Encuentra todos los accesorios que necesitas para complementar tu equipo y mejorar tu rendimiento.
-    </p>
+        <p class="text-lg text-gray-700 text-center mb-8">
+            Encuentra la equipación y los accesorios perfectos para llevar tu juego al siguiente nivel. ¡Descubre todo lo que necesitas para el campo!
+        </p>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        
+        <div class="flex flex-col lg:flex-row justify-between items-center mb-5 bg-white p-4 rounded-lg shadow-sm">
+            <!-- Botón para desplegar el filtro de fechas -->
+            <div class="relative mb-4 lg:mb-0">
+                <button @onclick="ToggleDateFilter" type="button" class="flex items-center px-4 py-2 bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                    <i class="fas fa-calendar-alt mr-2"></i>
+                    <span>@GetDateFilterText()</span>
+                    <i class="fas fa-chevron-down ml-2 transition-transform duration-200 @(mostrarFiltroFecha ? "rotate-180" : "rotate-0")"></i>
+                </button>
+
+                <!-- Contenedor del calendario desplegable -->
+                @if (mostrarFiltroFecha)
+                {
+                    <div class="absolute z-20 mt-2 p-4 bg-white border border-gray-200 rounded-lg shadow-xl w-64 right-0 lg:left-0">
+                        <div class="flex flex-col gap-2">
+                            <div>
+                                <label for="fechaInicio" class="block text-sm font-medium text-gray-700">Desde</label>
+                                <input type="date" id="fechaInicio" @bind="fechaInicio" @bind:after="OnFilterOrSortChanged" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm" />
+                            </div>
+                            <div>
+                                <label for="fechaFin" class="block text-sm font-medium text-gray-700">Hasta</label>
+                                <input type="date" id="fechaFin" @bind="fechaFin" @bind:after="OnFilterOrSortChanged" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm" />
+                            </div>
+                            <button @onclick="ClearDateFilter" class="mt-2 px-3 py-1.5 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                                Limpiar Fechas
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Ordenación existente -->
+            <div class="flex items-center">
+                <span class="text-gray-700 mr-3">Ordenar por:</span>
+                <select @bind="ordenarPor" @bind:after="OnFilterOrSortChanged" class="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                    <option value="precio-menor-mayor">Precio: menor a mayor</option>
+                    <option value="precio-mayor-menor">Precio: mayor a menor</option>
+                    <option value="nombre-az">Nombre: A-Z</option>
+                </select>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(mensajeStatus))
+        {
+            <div class="@(mensajeEsError ? "bg-red-100 border-red-400 text-red-700" : "bg-green-100 border-green-400 text-green-700") border rounded-md p-4 mb-4" role="alert">
+                @mensajeStatus
+            </div>
+        }
+
+        @if (isLoading)
+        {
+            <div class="text-center py-12">
+                <p class="text-xl text-gray-700">Cargando accesorios...</p>
+                <div class="mt-4 animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+            </div>
+        }
+        else if (productos == null || !productos.Any())
+        {
+            <div class="text-center py-12">
+                <p class="text-xl text-gray-700">No se encontraron accesorios en esta categoría.</p>
+                <p class="text-md text-gray-500">¡Vuelve pronto, estamos añadiendo nuevos productos!</p>
+            </div>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                @foreach (var producto in productos)
+                {
+                    <div class="relative bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100">
+                        @if (IsAdmin)
+                        {
+                            <div class="absolute top-2 right-2 z-10">
+                                <div class="relative inline-block text-left">
+                                    <button @onclick="() => ToggleDropdown(producto.Id)" type="button" class="inline-flex justify-center w-full rounded-full p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-400">
+                                        <i class="fas fa-cog text-xl"></i>
+                                    </button>
+                                    @if (dropdownProductId == producto.Id)
+                                    {
+                                        <div class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                            <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                                <button @onclick="() => NavigateToEdit(producto.Id)" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem">
+                                                    <i class="fas fa-edit mr-2"></i> Editar
+                                                </button>
+                                                <button @onclick="() => AbrirModalEliminar(producto)" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 hover:text-red-800" role="menuitem">
+                                                    <i class="fas fa-trash-alt mr-2"></i> Eliminar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <a href="/productos/@producto.Id" class="block">
+                            <div class="relative w-full h-64 overflow-hidden p-4 flex items-center justify-center bg-gray-50">
+                                <img src="@producto.ImagenUrl" alt="@producto.Nombre" class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300" onerror="this.onerror=null;this.src='https://placehold.co/400x400/E0E0E0/6C757D?text=Imagen+no+disponible';" />
+                            </div>
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold text-gray-900 truncate mb-1">@producto.Nombre</h3>
+                                <p class="text-gray-600 text-sm mb-3">@producto.Categoria</p>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <span class="text-xl font-bold text-gray-900">@producto.Precio.ToString("C")</span>
+                                        @if (producto.Descuento > 0)
+                                        {
+                                            <span class="ml-2 text-md text-red-500 line-through">
+                                                @((producto.Precio / (1 - producto.Descuento)).ToString("C"))
+                                            </span>
+                                        }
+                                    </div>
+                                    @if (producto.Descuento > 0)
+                                    {
+                                        <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                            @((producto.Descuento * 100).ToString("0"))% OFF
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                }
+            </div>
+        }
     </div>
 </div>
 
-@code {
 
+@if (mostrarModalEliminar)
+{
+    <div class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                Eliminar Producto
+                            </h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500">
+                                    ¿Estás seguro de que quieres eliminar el producto "@productoNombreAEliminar" de forma permanente? Esta acción no se puede deshacer.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @onclick="ConfirmarEliminarProducto" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Eliminar
+                    </button>
+                    <button type="button" @onclick="CerrarModalEliminar" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Producto> productos = new List<Producto>();
+    private bool isLoading = true;
+    private string? errorMessage;
+    private bool IsAdmin = false;
+    private int? dropdownProductId = null;
+    private string? mensajeStatus;
+    private bool mensajeEsError = false;
+
+    private string ordenarPor = "precio-menor-mayor";
+
+    private DateTime? fechaInicio;
+    private DateTime? fechaFin;
+    private bool mostrarFiltroFecha = false;
+
+    private bool mostrarModalEliminar = false;
+    private int productoIdAEliminar;
+    private string productoNombreAEliminar = string.Empty;
+
+    private void AbrirModalEliminar(Producto producto)
+    {
+        productoIdAEliminar = producto.Id;
+        productoNombreAEliminar = producto.Nombre;
+        mostrarModalEliminar = true;
+        dropdownProductId = null; 
+        StateHasChanged();
+    }
+
+    private void CerrarModalEliminar() => mostrarModalEliminar = false;
+
+    private void ToggleDateFilter()
+    {
+        mostrarFiltroFecha = !mostrarFiltroFecha;
+    }
+
+    private string GetDateFilterText()
+    {
+        if (fechaInicio.HasValue && fechaFin.HasValue)
+        {
+            return $"{fechaInicio.Value.ToShortDateString()} - {fechaFin.Value.ToShortDateString()}";
+        }
+        else if (fechaInicio.HasValue)
+        {
+            return $"Desde: {fechaInicio.Value.ToShortDateString()}";
+        }
+        else if (fechaFin.HasValue)
+        {
+            return $"Hasta: {fechaFin.Value.ToShortDateString()}";
+        }
+        return "Filtrar por fecha";
+    }
+
+    private void ClearDateFilter()
+    {
+        fechaInicio = null;
+        fechaFin = null;
+        OnFilterOrSortChanged();
+    }
+
+    private async Task OnFilterOrSortChanged()
+    {
+        await LoadProducts();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity.IsAuthenticated)
+        {
+            IsAdmin = user.IsInRole("Admin");
+        }
+        await LoadProducts();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                const header = document.getElementById('main-header');
+                if (header) {
+                    header.classList.add('category-header');
+                    header.style.position = 'fixed';
+                    header.style.top = '40px';
+                    header.style.backgroundColor = '#1A1A1A';
+                    header.style.backdropFilter = 'none';
+                    header.style.webkitBackdropFilter = 'none';
+                }
+            ");
+        }
+    }
+
+    private async Task LoadProducts()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            IQueryable<Producto> query = DbContext.Productos
+                .Where(p => p.Categoria == "Accesorios"); 
+
+            if (fechaInicio.HasValue)
+            {
+                query = query.Where(p => p.FechaCreacion >= fechaInicio.Value.Date);
+            }
+            if (fechaFin.HasValue)
+            {
+
+                query = query.Where(p => p.FechaCreacion < fechaFin.Value.Date.AddDays(1));
+            }
+
+            switch (ordenarPor)
+            {
+                case "precio-menor-mayor":
+                    query = query.OrderBy(p => p.Precio);
+                    break;
+                case "precio-mayor-menor":
+                    query = query.OrderByDescending(p => p.Precio);
+                    break;
+                case "nombre-az":
+                    query = query.OrderBy(p => p.Nombre);
+                    break;
+                default:
+                    query = query.OrderByDescending(p => p.FechaCreacion);
+                    break;
+            }
+
+            productos = await query.ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar productos de la categoría Accesorios.");
+            errorMessage = "Error al cargar los productos. Por favor, intente de nuevo más tarde.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ToggleDropdown(int productId)
+    {
+        dropdownProductId = (dropdownProductId == productId) ? null : productId;
+    }
+
+    private void NavigateToEdit(int productId)
+    {
+        NavigationManager.NavigateTo($"/admin/editarproducto/{productId}");
+        dropdownProductId = null;
+    }
+
+    private async Task ConfirmarEliminarProducto()
+    {
+        CerrarModalEliminar(); 
+        await DeleteProduct(productoIdAEliminar);
+    }
+
+    private async Task DeleteProduct(int productId)
+    {
+        try
+        {
+            var productToDelete = await DbContext.Productos.FindAsync(productId);
+            if (productToDelete != null)
+            {
+                DbContext.Productos.Remove(productToDelete);
+                await DbContext.SaveChangesAsync();
+                await LoadProducts(); 
+
+                mensajeStatus = "Producto eliminado con éxito.";
+                mensajeEsError = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al eliminar el producto con ID: {ProductId}", productId);
+            mensajeStatus = "Error al eliminar el producto. Por favor, intente de nuevo.";
+            mensajeEsError = true;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
 }

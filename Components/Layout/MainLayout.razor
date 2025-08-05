@@ -2,64 +2,168 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Web
 @using Proyecto_Final.Components.Account
+@using System.Timers
 @inject IdentityRedirectManager RedirectManager
 @inject NavigationManager NavManager
-
+@implements IDisposable
 @rendermode InteractiveServer
 
-<header class="bg-[#1A1A1A] text-white shadow-lg">
+<div class="bg-[#1A1A1A] text-white text-center py-2 px-4 text-sm font-medium overflow-hidden relative z-40">
+    <div class="animate-marquee whitespace-nowrap">
+        <span class="px-8">🔥 CAMBIO DE TEMPORADA CAMISETAS DESDE $1,500 🔥</span> &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;
+        <span class="px-8">🔥 CAMBIO DE TEMPORADA CAMISETAS DESDE $1,500 🔥</span> &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;
+        <span class="px-8">🔥 CAMBIO DE TEMPORADA CAMISETAS DESDE $1,500 🔥</span> &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;
+        <span class="px-8">🔥 CAMBIO DE TEMPORADA CAMISETAS DESDE $1,500 🔥</span> &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;
+        <span class="px-8">🔥 CAMBIO DE TEMPORADA CAMISETAS DESDE $1,500 🔥</span> &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;
+    </div>
+</div>
+
+<header class="@HeaderClass">
     <div class="container mx-auto px-4">
-        <div class="flex flex-col md:flex-row justify-between items-center py-4">
-            <div class="flex items-center mb-4 md:mb-0">
-                <img src="imagenes/logo/logo.png" alt="Golazo Store" class="h-20">
-
-                <div class="hidden md:flex space-x-6 ml-8">
-                    <NavLink href="/" class="font-medium hover:text-yellow-400">Inicio</NavLink>
-                    <NavLink href="/camisetas" class="font-medium hover:text-yellow-400">Camisetas</NavLink>
-                    <NavLink href="/botines" class="font-medium hover:text-yellow-400">Botines</NavLink>
-                    <NavLink href="/guantes" class="font-medium hover:text-yellow-400">Guantes</NavLink>
-                    <NavLink href="/accesorios" class="font-medium hover:text-yellow-400">Accesorios</NavLink>
-
-                    <AuthorizeView Roles="Admin">
-                        <NavLink href="/admin/productos" class="font-medium hover:text-yellow-400">Admin Productos</NavLink>
-                        <NavLink href="/admin/pedidos" class="font-medium hover:text-yellow-400">Admin Pedidos</NavLink>
-                    </AuthorizeView>
-                </div>
+        <div class="flex items-center justify-between py-4">
+            <div class="flex items-center">
+                <a href="/">
+                    <img src="imagenes/logo/logo2.png" alt="Golazo Store" class="h-14 md:h-16 drop-shadow-2xl">
+                </a>
             </div>
 
-            <div class="flex items-center space-x-4 ml-auto mr-4">
-                <div class="relative w-full md:w-96 mb-4 md:mb-0">
-                    <input type="text" placeholder="Buscar productos..." class="w-full py-2 px-4 rounded-full text-gray-800 focus:outline-none">
-                    <button class="absolute right-0 top-0 bg-yellow-500 text-black py-2 px-4 rounded-r-full hover:bg-yellow-600 transition-colors">
-                        <i class="fas fa-search"></i>
-                    </button>
+            <nav class="hidden lg:flex items-center justify-center flex-1">
+                <div class="flex items-center space-x-8">
+                    <NavLink href="/camisetas" class="font-medium text-sm uppercase tracking-wide hover:text-yellow-400 transition-colors drop-shadow-lg">
+                        Camisetas
+                    </NavLink>
+                    <NavLink href="/botines" class="font-medium text-sm uppercase tracking-wide hover:text-yellow-400 transition-colors drop-shadow-lg">
+                        Botines
+                    </NavLink>
+                    <NavLink href="/guantes" class="font-medium text-sm uppercase tracking-wide hover:text-yellow-400 transition-colors drop-shadow-lg">
+                        Guantes
+                    </NavLink>
+                    <NavLink href="/accesorios" class="font-medium text-sm uppercase tracking-wide hover:text-yellow-400 transition-colors drop-shadow-lg">
+                        Accesorios
+                    </NavLink>
+                    <NavLink href="/novedades" class="font-medium text-sm uppercase tracking-wide hover:text-yellow-400 transition-colors drop-shadow-lg">
+                        Novedades
+                    </NavLink>
                 </div>
-                <NavLink href="/carrito" class="hover:text-yellow-400 relative">
-                    <i class="fas fa-shopping-cart text-xl"></i>
-                    <span class="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">3</span>
+            </nav>
+
+            <div class="flex items-center space-x-3">
+                <button @onclick="ToggleSearchModal" class="hover:text-yellow-400 transition-colors p-2">
+                    <i class="fas fa-search text-lg drop-shadow-lg"></i>
+                </button>
+
+                <NavLink href="/carrito" class="hover:text-yellow-400 relative transition-colors p-2">
+                    <i class="fas fa-shopping-cart text-lg drop-shadow-lg"></i>
                 </NavLink>
-                <NavLink href="/perfil" class="hover:text-yellow-400"><i class="fas fa-user text-xl"></i></NavLink>
+
+                <NavLink href="/perfil" class="hover:text-yellow-400 transition-colors p-2">
+                    <i class="fas fa-user text-lg drop-shadow-lg"></i>
+                </NavLink>
+
+                <AuthorizeView Roles="Admin">
+                    <div class="relative">
+                        <button @onclick="ToggleAdminMenu" class="text-white hover:text-yellow-400 focus:outline-none transition-colors p-2">
+                            <i class="fas fa-cog text-lg drop-shadow-lg"></i>
+                        </button>
+                        @if (showAdminMenu)
+                        {
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+
+                                <NavLink href="/admin/productos" @onclick="ToggleAdminMenu"
+                                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                    Administrar Productos
+                                </NavLink>
+                                <NavLink href="/admin/pedidos" @onclick="ToggleAdminMenu"
+                                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                    Administrar Pedidos
+                                </NavLink>
+                                <NavLink href="/reporte-productos" @onclick="ToggleAdminMenu"
+                                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                    Reportes Productos
+                                </NavLink>
+                                <NavLink href="/reporte-ventas" @onclick="ToggleAdminMenu"
+                                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                    Reportes Ventas
+                                </NavLink>
+                            </div>
+                        }
+                    </div>
+                </AuthorizeView>
+
                 <AuthorizeView>
                     <Authorized>
-                        <form action="Account/Logout" method="post">
+                        <form action="Account/Logout" method="post" class="inline">
                             <AntiforgeryToken />
                             <input type="hidden" name="ReturnUrl" value="@NavManager.ToBaseRelativePath(NavManager.Uri)" />
-                            <button type="submit" class="hover:text-yellow-400 text-xl focus:outline-none">
-                                <i class="fas fa-sign-out-alt"></i>
+                            <button type="submit" class="hover:text-yellow-400 transition-colors focus:outline-none p-2">
+                                <i class="fas fa-sign-out-alt text-lg drop-shadow-lg"></i>
                             </button>
                         </form>
                     </Authorized>
                 </AuthorizeView>
-                <a href="#" class="md:hidden hover:text-yellow-400"><i class="fas fa-search text-xl"></i></a>
+
+                <button class="lg:hidden hover:text-yellow-400 transition-colors p-2" @onclick="ToggleMobileMenu">
+                    <i class="fas fa-bars text-lg drop-shadow-lg"></i>
+                </button>
             </div>
         </div>
+
+        @if (showMobileMenu)
+        {
+            <div class="lg:hidden border-t border-white/30 py-4 bg-black/60 backdrop-blur-md rounded-b-lg">
+                <div class="flex flex-col space-y-3 text-center">
+                    <NavLink href="/camisetas" @onclick="ToggleMobileMenu"
+                             class="font-medium text-sm uppercase tracking-wide hover:text-yellow-400 transition-colors py-2 drop-shadow-lg">
+                        Camisetas
+                    </NavLink>
+                    <NavLink href="/botines" @onclick="ToggleMobileMenu"
+                             class="font-medium text-sm uppercase tracking-wide hover:text-yellow-400 transition-colors py-2 drop-shadow-lg">
+                        Botines
+                    </NavLink>
+                    <NavLink href="/guantes" @onclick="ToggleMobileMenu"
+                             class="font-medium text-sm uppercase tracking-wide hover:text-yellow-400 transition-colors py-2 drop-shadow-lg">
+                        Guantes
+                    </NavLink>
+                    <NavLink href="/accesorios" @onclick="ToggleMobileMenu"
+                             class="font-medium text-sm uppercase tracking-wide hover:text-yellow-400 transition-colors py-2 drop-shadow-lg">
+                        Accesorios
+                    </NavLink>
+                    <NavLink href="/novedades" @onclick="ToggleMobileMenu"
+                             class="font-medium text-sm uppercase tracking-wide hover:text-yellow-400 transition-colors py-2 drop-shadow-lg">
+                        Novedades
+                    </NavLink>
+                </div>
+            </div>
+        }
     </div>
 </header>
 
-<nav class="bg-white shadow-md">
-    <div class="container mx-auto px-4">
+@if (showSearchModal)
+{
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-start justify-center pt-20" @onclick="CloseSearchModal">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 animate-in slide-in-from-top duration-300" @onclick:stopPropagation="true">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Buscar productos</h3>
+                    <button @onclick="CloseSearchModal" class="text-gray-500 hover:text-gray-700 transition-colors">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="relative">
+                    <input type="text" @bind="searchQuery" @onkeypress="HandleSearchKeyPress"
+                           placeholder="¿Qué estás buscando?"
+                           class="w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent">
+                    <button @onclick="PerformSearch" class="absolute right-0 top-0 h-full px-4 bg-yellow-500 text-black rounded-r-lg hover:bg-yellow-600 transition-colors">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <div class="mt-4 text-sm text-gray-600">
+                    <p>Búsquedas populares: Camisetas Real Madrid, Botines Nike, Guantes Adidas</p>
+                </div>
+            </div>
+        </div>
     </div>
-</nav>
+}
 
 <main class="flex-grow">
     @Body
@@ -67,35 +171,43 @@
 
 <footer class="bg-[#1A1A1A] text-white pt-12 pb-6">
     <div class="container mx-auto px-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             <div>
                 <h3 class="text-xl font-bold mb-4">Golazo Store</h3>
                 <p class="text-gray-400 mb-4">Tu tienda oficial de artículos de fútbol en República Dominicana.</p>
                 <div class="flex space-x-4">
-                    <a href="#" class="text-gray-400 hover:text-yellow-400"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="text-gray-400 hover:text-yellow-400"><i class="fab fa-instagram"></i></a>
-                    <a href="#" class="text-gray-400 hover:text-yellow-400"><i class="fab fa-twitter"></i></a>
-                    <a href="#" class="text-gray-400 hover:text-yellow-400"><i class="fab fa-whatsapp"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-yellow-400 transition-colors">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-yellow-400 transition-colors">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-yellow-400 transition-colors">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-yellow-400 transition-colors">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
                 </div>
             </div>
 
             <div>
                 <h4 class="font-bold mb-4">COMPAÑÍA</h4>
                 <ul class="space-y-2">
-                    <li><a href="#" class="text-gray-400 hover:text-yellow-400">Nosotros</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-yellow-400">Blog</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-yellow-400">Trabaja con nosotros</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-yellow-400">Términos y condiciones</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-yellow-400 transition-colors">Nosotros</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-yellow-400 transition-colors">Blog</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-yellow-400 transition-colors">Trabaja con nosotros</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-yellow-400 transition-colors">Términos y condiciones</a></li>
                 </ul>
             </div>
 
             <div>
                 <h4 class="font-bold mb-4">AYUDA</h4>
                 <ul class="space-y-2">
-                    <li><a href="#" class="text-gray-400 hover:text-yellow-400">Preguntas frecuentes</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-yellow-400">Envíos y devoluciones</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-yellow-400">Guía de tallas</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-yellow-400">Contacto</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-yellow-400 transition-colors">Preguntas frecuentes</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-yellow-400 transition-colors">Envíos y devoluciones</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-yellow-400 transition-colors">Guía de tallas</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-yellow-400 transition-colors">Contacto</a></li>
                 </ul>
             </div>
 
@@ -122,21 +234,84 @@
         <div class="border-t border-gray-700 pt-6 text-center text-gray-500 text-sm">
             <p>© @DateTime.Now.Year Golazo Store. Todos los derechos reservados.</p>
             <div class="mt-4">
-                <img src="https://placehold.co/300x40/1A1A1A/ffffff?text=Visa+Mastercard+PayPal" alt="Métodos de pago" class="h-8 mx-auto opacity-70">
+                <img src="https://placehold.co/300x40/1A1A1A/ffffff?text=Visa+Mastercard+PayPal"
+                     alt="Métodos de pago"
+                     class="h-8 mx-auto opacity-70">
             </div>
         </div>
     </div>
 </footer>
 
-<a href="#" class="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition duration-300 z-50">
+<a href="https://wa.me/18095551234" target="_blank" class="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition duration-300 z-50">
     <i class="fab fa-whatsapp text-2xl"></i>
 </a>
 
 @code {
-    private bool showSearchBar = false; 
+    private bool showAdminMenu = false;
+    private bool showMobileMenu = false;
+    private bool showSearchModal = false;
+    private string searchQuery = string.Empty;
+    private string HeaderClass => NavManager.ToBaseRelativePath(NavManager.Uri) == ""
+        ? "absolute top-10 left-0 right-0 bg-transparent text-white z-50 transition-all duration-300"
+        : "bg-[#1A1A1A] text-white z-50 transition-all duration-300";
 
-    private void ToggleSearchBar()
+    protected override void OnInitialized()
     {
-        showSearchBar = !showSearchBar;
+        NavManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    private void ToggleAdminMenu()
+    {
+        showAdminMenu = !showAdminMenu;
+    }
+
+    private void ToggleMobileMenu()
+    {
+        showMobileMenu = !showMobileMenu;
+    }
+
+    private void ToggleSearchModal()
+    {
+        showSearchModal = !showSearchModal;
+        if (showSearchModal)
+        {
+            searchQuery = string.Empty;
+        }
+    }
+
+    private void CloseSearchModal()
+    {
+        showSearchModal = false;
+    }
+
+    private void PerformSearch()
+    {
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            NavManager.NavigateTo($"/buscar/{searchQuery}");
+            CloseSearchModal();
+        }
+    }
+
+    private void HandleSearchKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            PerformSearch();
+        }
+        else if (e.Key == "Escape")
+        {
+            CloseSearchModal();
+        }
+    }
+
+    public void Dispose()
+    {
+        NavManager.LocationChanged -= OnLocationChanged;
     }
 }

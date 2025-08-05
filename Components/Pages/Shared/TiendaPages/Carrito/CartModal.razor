@@ -1,0 +1,227 @@
+﻿@using Proyecto_Final.Models.Carrito
+@using Proyecto_Final.Services
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ICarritoService CarritoService
+@inject IAnonymousCartService AnonymousCartService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+@if (IsVisible)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @onclick="CloseModal">
+        <div class="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-hidden shadow-2xl" @onclick:stopPropagation="true">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                        <i class="fas fa-check text-white text-sm"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800">Cesta</h2>
+                </div>
+                <button @onclick="CloseModal" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">
+                    &times;
+                </button>
+            </div>
+
+            <div class="p-4 bg-green-50 border-b border-gray-200">
+                <p class="text-sm text-green-700">Tu pedido cumple los requisitos de envío gratuito.</p>
+            </div>
+
+            <div class="max-h-96 overflow-y-auto">
+                @if (carritoItems != null && carritoItems.Any())
+                {
+                    @foreach (var item in carritoItems)
+                    {
+                        <div class="flex items-center p-4 border-b border-gray-100 hover:bg-gray-50">
+                            <div class="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg overflow-hidden mr-4">
+                                <img src="@item.Producto.ImagenUrl"
+                                     alt="@item.Producto.Nombre"
+                                     class="w-full h-full object-cover"
+                                     onerror="this.onerror=null;this.src='https://placehold.co/100x100/E0E0E0/6C757D?text=No+img';" />
+                            </div>
+
+                            <div class="flex-grow">
+                                <h3 class="font-semibold text-gray-800 text-sm mb-1">@item.Producto.Nombre</h3>
+                                <p class="text-xs text-gray-500 mb-1">@item.Producto.Precio.ToString("C")</p>
+                                @if (item.ProductoVariacion != null && !string.IsNullOrEmpty(item.ProductoVariacion.ValorAtributo))
+                                {
+                                    <p class="text-xs text-gray-500">@item.ProductoVariacion.TipoAtributo: @item.ProductoVariacion.ValorAtributo</p>
+                                }
+                                <p class="text-xs text-gray-400">@item.Cantidad (@(item.Cantidad <= 7 ? $"{item.Cantidad}-7 años" : ""))</p>
+                            </div>
+
+                            <div class="flex-shrink-0 text-right">
+                                <p class="font-bold text-gray-800 mb-2">@((item.Cantidad * item.Producto.Precio * (1 - item.Producto.Descuento)).ToString("C"))</p>
+                                <button @onclick="() => RemoveItem(item)" class="text-gray-400 hover:text-red-500 text-sm">
+                                    Quitar
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="p-8 text-center text-gray-500">
+                        <i class="fas fa-shopping-cart text-4xl mb-4"></i>
+                        <p>Tu carrito está vacío</p>
+                    </div>
+                }
+            </div>
+
+            <div class="p-4 bg-gray-50 border-b border-gray-200">
+                <h3 class="font-semibold text-sm text-gray-700 mb-3">Trending</h3>
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg mr-3 overflow-hidden">
+                        <img src="https://placehold.co/100x100/E3F2FD/1976D2?text=City"
+                             alt="Manchester City"
+                             class="w-full h-full object-cover" />
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-sm font-medium text-gray-800">Manchester City Home 2023-24</p>
+                        <p class="text-xs text-gray-500">RD$ 1,500.00</p>
+                    </div>
+                    <button class="bg-yellow-500 text-black text-xs px-3 py-1 rounded font-medium hover:bg-yellow-600">
+                        + Añadir
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 bg-white">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xl font-bold text-gray-800">Total</span>
+                    <span class="text-xl font-bold text-gray-800">@total.ToString("C")</span>
+                </div>
+                <p class="text-xs text-gray-500 mb-4">Los impuestos y gastos de envío se calculan en la pantalla de pago</p>
+                <p class="text-xs text-blue-600 mb-4 cursor-pointer hover:underline" @onclick="AddNoteToOrder">Añadir nota al pedido</p>
+
+                <div class="space-y-3">
+                    <button @onclick="GoToCart"
+                            class="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 rounded-lg transition-colors duration-300">
+                        Ver cesta
+                    </button>
+                    <button @onclick="GoToCheckout"
+                            class="w-full bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-lg transition-colors duration-300 flex items-center justify-center">
+                        <i class="fas fa-lock mr-2"></i>
+                        Finalizar compra
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public EventCallback OnCartUpdated { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    private List<CarritoItem> carritoItems = new();
+    private bool isLoggedIn;
+    private string? usuarioId;
+    private decimal total => carritoItems?.Sum(item => item.Cantidad * item.Producto.Precio * (1 - item.Producto.Descuento)) ?? 0;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsVisible)
+        {
+            await LoadAuthenticationState();
+            await LoadCartItems();
+        }
+    }
+
+    private async Task LoadAuthenticationState()
+    {
+        var authState = await authenticationStateTask;
+        var user = authState.User;
+        isLoggedIn = user.Identity?.IsAuthenticated ?? false;
+        usuarioId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private async Task LoadCartItems()
+    {
+        try
+        {
+            if (isLoggedIn && !string.IsNullOrEmpty(usuarioId))
+            {
+                carritoItems = await CarritoService.ObtenerItemsDelCarritoAsync(usuarioId);
+            }
+            else
+            {
+                carritoItems = await AnonymousCartService.GetAnonymousCartItemsAsync();
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading cart items: {ex.Message}");
+            carritoItems = new List<CarritoItem>();
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(IsVisible);
+    }
+
+    private async Task RemoveItem(CarritoItem item)
+    {
+        try
+        {
+            if (isLoggedIn)
+            {
+                await CarritoService.EliminarDelCarritoAsync(item.Id);
+            }
+            else
+            {
+                await AnonymousCartService.RemoveFromAnonymousCartAsync(item.ProductoVariacionId);
+            }
+
+            await LoadCartItems();
+            await OnCartUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error removing item: {ex.Message}");
+        }
+    }
+
+    private async Task GoToCart()
+    {
+        await CloseModal();
+        NavigationManager.NavigateTo("/carrito");
+    }
+
+    private async Task GoToCheckout()
+    {
+        if (!carritoItems.Any())
+        {
+            return;
+        }
+
+        await CloseModal();
+
+        if (!isLoggedIn)
+        {
+            NavigationManager.NavigateTo($"/Account/Login?returnUrl={Uri.EscapeDataString("/checkout")}");
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/checkout");
+        }
+    }
+
+    private void AddNoteToOrder()
+    {
+    }
+
+    public async Task ShowModal()
+    {
+        IsVisible = true;
+        await LoadAuthenticationState();
+        await LoadCartItems();
+        StateHasChanged();
+    }
+}

@@ -1,19 +1,211 @@
 ﻿@page "/carrito"
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
+@using Proyecto_Final.Models.Carrito
+@using Proyecto_Final.Services
+@inject ICarritoService CarritoService
+@inject IAnonymousCartService AnonymousCartService
+@inject NavigationManager NavManager
+@inject ILogger<Carrito> Logger
+@inject ISnackbar Snackbar
 
 <PageTitle>Mi Carrito - Golazo Store</PageTitle>
 
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">Mi Carrito de Compras</h1>
+    <h1 class="text-5xl font-bold text-center mb-8 text-gray-800">Carrito de Compras</h1>
 
-    <p class="text-lg text-gray-700 text-center mb-8">
-        Revisa los productos que has añadido a tu carrito y procede con la compra.
-    </p>
+    @if (isLoading)
+    {
+        <div class="flex justify-center items-center h-64">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-500"></div>
+        </div>
+    }
+    else if (carritoItems == null || !carritoItems.Any())
+    {
+        <div class="text-center py-12">
+            <i class="fas fa-shopping-cart text-gray-400 text-6xl mb-4"></i>
+            <p class="text-2xl font-semibold text-gray-700 mb-2">Tu carrito está vacío</p>
+            <p class="text-gray-500 mb-6">Parece que aún no has añadido productos a tu carrito de compras.</p>
+            <NavLink href="/productos" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-colors duration-300">
+                Explorar productos
+            </NavLink>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="md:col-span-2">
+                @foreach (var item in carritoItems)
+                {
+                    <div class="bg-white p-4 rounded-xl shadow-md border border-gray-200 mb-4 flex items-center">
+                        <img src="@item.Producto?.ImagenUrl" alt="@item.Producto?.Nombre"
+                             class="w-24 h-24 object-cover rounded-lg mr-4"
+                             onerror="this.onerror=null;this.src='https://placehold.co/100x100/E0E0E0/6C757D?text=No+img';" />
+                        <div class="flex-grow">
+                            <h3 class="text-lg font-bold text-gray-800">@item.Producto?.Nombre</h3>
+                            @if (!string.IsNullOrEmpty(item.ProductoVariacion?.ValorAtributo))
+                            {
+                                <p class="text-gray-500">@item.ProductoVariacion.TipoAtributo: @item.ProductoVariacion.ValorAtributo</p>
+                            }
+                            <p class="text-gray-800 font-semibold mt-2">
+                                @(((item.Producto?.Precio ?? 0m) * (1 - (item.Producto?.Descuento ?? 0m))).ToString("C"))
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <input @bind="item.Cantidad"
+                                   @bind:after="() => UpdateCantidadAsync(item)"
+                                   type="number"
+                                   min="1"
+                                   max="@(item.ProductoVariacion?.Stock ?? 100)"
+                                   class="w-16 text-center border rounded-lg py-1"
+                                   @oninput="e => item.Cantidad = Math.Max(1, int.TryParse(e.Value?.ToString(), out var v) ? v : 1)" />
+                            <p class="font-bold text-xl">
+                                @((item.Cantidad * ((item.Producto?.Precio ?? 0m) * (1 - (item.Producto?.Descuento ?? 0m)))).ToString("C"))
+                            </p>
+                            <button @onclick="() => EliminarItemAsync(item)" class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
 
-    <div class="grid grid-cols-1 gap-8">
-        <!-- Aquí es donde irá el contenido dinámico del carrito (ej. lista de productos, total, botones de pago) -->
-    </div>
+            <div class="md:col-span-1">
+                <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200 sticky top-4">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800">Resumen del Pedido</h2>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600">Subtotal</span>
+                        <span class="font-semibold">@subtotal.ToString("C")</span>
+                    </div>
+                    <div class="flex justify-between mb-4">
+                        <span class="text-gray-600">Envío (Estimado)</span>
+                        <span class="font-semibold">Gratis</span>
+                    </div>
+                    <hr class="border-gray-200 mb-4">
+                    <div class="flex justify-between items-center text-xl font-bold mb-6">
+                        <span>Total</span>
+                        <span>@subtotal.ToString("C")</span>
+                    </div>
+                    <button @onclick="ProcesarCompra" class="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 rounded-lg transition-colors duration-300">
+                        Procesar Compra
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
 
+    private List<CarritoItem>? carritoItems;
+    private bool isLoading = true;
+    private string? usuarioId;
+    private bool isLoggedIn = false;
+
+    private decimal subtotal =>
+        carritoItems?.Sum(item =>
+            item.Cantidad * ((item.Producto?.Precio ?? 0m) * (1 - (item.Producto?.Descuento ?? 0m)))
+        ) ?? 0m;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAuthenticationStateAsync();
+        await LoadCartAsync();
+    }
+
+    private async Task LoadAuthenticationStateAsync()
+    {
+        var authState = await authenticationStateTask;
+        var user = authState.User;
+        isLoggedIn = user.Identity?.IsAuthenticated ?? false;
+        usuarioId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private async Task LoadCartAsync()
+    {
+        isLoading = true;
+        try
+        {
+            carritoItems = isLoggedIn && !string.IsNullOrEmpty(usuarioId)
+                ? await CarritoService.ObtenerItemsDelCarritoAsync(usuarioId)
+                : await AnonymousCartService.GetAnonymousCartItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar el carrito.");
+            Snackbar.Add("Ocurrió un error al cargar su carrito.", Severity.Error);
+            carritoItems = new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task EliminarItemAsync(CarritoItem item)
+    {
+        try
+        {
+            if (isLoggedIn)
+                await CarritoService.EliminarDelCarritoAsync(item.Id);
+            else
+                await AnonymousCartService.RemoveFromAnonymousCartAsync(item.ProductoVariacionId);
+
+            await LoadCartAsync();
+            Snackbar.Add($"'{item.Producto?.Nombre}' eliminado.", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al eliminar item.");
+            Snackbar.Add("Error al eliminar el producto.", Severity.Error);
+        }
+    }
+
+    private async Task UpdateCantidadAsync(CarritoItem item)
+    {
+        try
+        {
+            if (item.Cantidad <= 0)
+            {
+                await EliminarItemAsync(item);
+                return;
+            }
+
+            if (isLoggedIn)
+                await CarritoService.ActualizarCantidadAsync(item.Id, item.Cantidad);
+            else
+                await AnonymousCartService.UpdateAnonymousCartItemAsync(item.ProductoVariacionId, item.Cantidad);
+
+            await LoadCartAsync();
+            Snackbar.Add($"Cantidad actualizada: '{item.Producto?.Nombre}'", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al actualizar cantidad.");
+            Snackbar.Add("Error al actualizar la cantidad.", Severity.Error);
+        }
+    }
+
+    private void ProcesarCompra()
+    {
+        if (carritoItems == null || !carritoItems.Any())
+        {
+            Snackbar.Add("Su carrito está vacío.", Severity.Warning);
+            return;
+        }
+
+        if (!isLoggedIn)
+        {
+            Snackbar.Add("Debe iniciar sesión para continuar.", Severity.Info);
+            NavManager.NavigateTo($"/Account/Login?returnUrl={Uri.EscapeDataString(NavManager.Uri)}");
+        }
+        else
+        {
+            NavManager.NavigateTo("/checkout");
+        }
+    }
 }

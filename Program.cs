@@ -6,10 +6,12 @@ using Proyecto_Final.Components.Account;
 using Proyecto_Final.Data;
 using Proyecto_Final.Models.Usuario;
 using Proyecto_Final.Services;
+using MudBlazor.Services;
+using Blazored.LocalStorage;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -28,7 +30,7 @@ builder.Services.AddAuthentication(options =>
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString, sqlOptions =>
     {
         sqlOptions.EnableRetryOnFailure(
@@ -58,9 +60,17 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 .AddErrorDescriber<LocalizedIdentityErrorDescriber>();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
-builder.Services.AddScoped<ProductoService>();
+
+builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<IPedidoService, PedidoService>();
+builder.Services.AddScoped<ICarritoService, CarritoService>();
+builder.Services.AddScoped<IAnonymousCartService, AnonymousCartService>();
 builder.Services.AddTransient<SeedData>();
+
+builder.Services.AddBlazoredLocalStorage();
+
+builder.Services.AddMudServices();
 
 builder.Services.AddAuthorization(options =>
 {
@@ -69,7 +79,6 @@ builder.Services.AddAuthorization(options =>
 });
 
 var app = builder.Build();
-
 
 if (app.Environment.IsDevelopment())
 {
@@ -83,13 +92,10 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseAntiforgery(); 
+app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
@@ -99,24 +105,24 @@ app.MapAdditionalIdentityEndpoints();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+
     try
     {
-        var context = services.GetRequiredService<ApplicationDbContext>();
-        var logger = services.GetRequiredService<ILogger<Program>>();
-
         logger.LogInformation("Applying migrations...");
-        context.Database.Migrate();
+        var contextFactory = services.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+        await using var context = contextFactory.CreateDbContext();
+        await context.Database.MigrateAsync();
 
         logger.LogInformation("Initializing seed data...");
         var seedData = services.GetRequiredService<SeedData>();
         await seedData.Initialize();
 
-        logger.LogInformation("Database initialized successfully");
+        logger.LogInformation("Database initialized successfully.");
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while initializing the database");
+        logger.LogError(ex, "An error occurred while initializing the database.");
     }
 }
 
