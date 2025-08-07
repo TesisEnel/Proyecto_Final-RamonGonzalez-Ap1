@@ -5,6 +5,7 @@ using Proyecto_Final.Models.Producto;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace Proyecto_Final.Services
 {
@@ -21,10 +22,8 @@ namespace Proyecto_Final.Services
         {
             var carrito = await _context.Carritos
                 .Include(c => c.Items)
-                .ThenInclude(ci => ci.Producto)
-                .ThenInclude(p => p.Variaciones) 
-                .Include(c => c.Items)
                 .ThenInclude(ci => ci.ProductoVariacion)
+                .ThenInclude(pv => pv.Producto)
                 .FirstOrDefaultAsync(c => c.UsuarioId == userId);
 
             if (carrito == null)
@@ -50,8 +49,8 @@ namespace Proyecto_Final.Services
         public async Task AgregarOActualizarItemAsync(string userId, int productoVariacionId, int cantidad)
         {
             var carrito = await GetCarritoAsync(userId);
-            var carritoItem = await _context.CarritoItems
-                .FirstOrDefaultAsync(ci => ci.CarritoId == carrito.Id && ci.ProductoVariacionId == productoVariacionId);
+            var carritoItem = carrito.Items
+                .FirstOrDefault(ci => ci.ProductoVariacionId == productoVariacionId);
 
             if (carritoItem == null)
             {
@@ -67,7 +66,6 @@ namespace Proyecto_Final.Services
                 carritoItem = new CarritoItem
                 {
                     CarritoId = carrito.Id,
-                    ProductoId = productoVariacion.ProductoId,
                     ProductoVariacionId = productoVariacion.Id,
                     Cantidad = cantidad,
                     FechaAgregado = DateTime.UtcNow
