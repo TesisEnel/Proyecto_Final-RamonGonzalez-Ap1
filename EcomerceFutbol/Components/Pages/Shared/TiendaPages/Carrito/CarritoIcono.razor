@@ -40,17 +40,17 @@
                 @foreach (var item in carritoItems)
                 {
                     <div class="bg-white p-4 rounded-xl shadow-md border border-gray-200 mb-4 flex items-center">
-                        <img src="@item.Producto?.ImagenUrl" alt="@item.Producto?.Nombre"
+                        <img src="@item.ProductoVariacion.Producto.ImagenUrl" alt="@item.ProductoVariacion.Producto.Nombre"
                              class="w-24 h-24 object-cover rounded-lg mr-4"
                              onerror="this.onerror=null;this.src='https://placehold.co/100x100/E0E0E0/6C757D?text=No+img';" />
                         <div class="flex-grow">
-                            <h3 class="text-lg font-bold text-gray-800">@item.Producto?.Nombre</h3>
+                            <h3 class="text-lg font-bold text-gray-800">@item.ProductoVariacion.Producto.Nombre</h3>
                             @if (!string.IsNullOrEmpty(item.ProductoVariacion?.ValorAtributo))
                             {
                                 <p class="text-gray-500">@item.ProductoVariacion.TipoAtributo: @item.ProductoVariacion.ValorAtributo</p>
                             }
                             <p class="text-gray-800 font-semibold mt-2">
-                                @(((item.Producto?.Precio ?? 0m) * (1 - (item.Producto?.Descuento ?? 0m))).ToString("C"))
+                                @(((item.ProductoVariacion.Producto?.Precio ?? 0m) * (1 - (item.ProductoVariacion.Producto?.Descuento ?? 0m))).ToString("C"))
                             </p>
                         </div>
                         <div class="flex items-center space-x-4">
@@ -62,7 +62,7 @@
                                    class="w-16 text-center border rounded-lg py-1"
                                    @oninput="e => item.Cantidad = Math.Max(1, int.TryParse(e.Value?.ToString(), out var v) ? v : 1)" />
                             <p class="font-bold text-xl">
-                                @((item.Cantidad * ((item.Producto?.Precio ?? 0m) * (1 - (item.Producto?.Descuento ?? 0m)))).ToString("C"))
+                                @((item.Cantidad * ((item.ProductoVariacion.Producto?.Precio ?? 0m) * (1 - (item.ProductoVariacion.Producto?.Descuento ?? 0m)))).ToString("C"))
                             </p>
                             <button @onclick="() => EliminarItemAsync(item)" class="text-red-500 hover:text-red-700">
                                 <i class="fas fa-trash-alt"></i>
@@ -108,7 +108,7 @@
 
     private decimal subtotal =>
         carritoItems?.Sum(item =>
-            item.Cantidad * ((item.Producto?.Precio ?? 0m) * (1 - (item.Producto?.Descuento ?? 0m)))
+            item.Cantidad * ((item.ProductoVariacion.Producto?.Precio ?? 0m) * (1 - (item.ProductoVariacion.Producto?.Descuento ?? 0m)))
         ) ?? 0m;
 
     protected override async Task OnInitializedAsync()
@@ -156,7 +156,7 @@
                 await AnonymousCartService.RemoveFromAnonymousCartAsync(item.ProductoVariacionId);
 
             await LoadCartAsync();
-            Snackbar.Add($"'{item.Producto?.Nombre}' eliminado.", Severity.Info);
+            Snackbar.Add($"'{item.ProductoVariacion.Producto?.Nombre}' eliminado.", Severity.Info);
         }
         catch (Exception ex)
         {
@@ -181,7 +181,7 @@
                 await AnonymousCartService.UpdateAnonymousCartItemAsync(item.ProductoVariacionId, item.Cantidad);
 
             await LoadCartAsync();
-            Snackbar.Add($"Cantidad actualizada: '{item.Producto?.Nombre}'", Severity.Success);
+            Snackbar.Add($"Cantidad actualizada: '{item.ProductoVariacion.Producto?.Nombre}'", Severity.Success);
         }
         catch (Exception ex)
         {

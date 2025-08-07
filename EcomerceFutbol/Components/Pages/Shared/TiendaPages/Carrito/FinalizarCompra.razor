@@ -178,16 +178,16 @@
                         {
                             <div class="flex items-center space-x-4">
                                 <div class="relative">
-                                    <img src="@item.Producto.ImagenUrl" alt="@item.Producto.Nombre" class="w-16 h-16 object-cover rounded-md border border-gray-200" onerror="this.onerror=null;this.src='https://placehold.co/100x100/E0E0E0/6C757D?text=No+img';" />
+                                    <img src="@item.ProductoVariacion.Producto.ImagenUrl" alt="@item.ProductoVariacion.Producto.Nombre" class="w-16 h-16 object-cover rounded-md border border-gray-200" onerror="this.onerror=null;this.src='https://placehold.co/100x100/E0E0E0/6C757D?text=No+img';" />
                                     <span class="absolute -top-2 -right-2 bg-gray-800 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                                         @item.Cantidad
                                     </span>
                                 </div>
                                 <div class="flex-grow">
-                                    <h3 class="text-sm font-bold">@item.Producto.Nombre</h3>
+                                    <h3 class="text-sm font-bold">@item.ProductoVariacion.Producto.Nombre</h3>
                                     <p class="text-xs text-gray-500">@item.ProductoVariacion.ValorAtributo</p>
                                 </div>
-                                <span class="font-semibold text-gray-800">@((item.Cantidad * item.Producto.Precio).ToString("C"))</span>
+                                <span class="font-semibold text-gray-800">@((item.Cantidad * item.ProductoVariacion.Producto.Precio).ToString("C"))</span>
                             </div>
                         }
                     </div>
@@ -246,7 +246,7 @@
     }
     private bool _useShippingAsBilling = false;
     private string? errorMessage;
-    private decimal subtotal => carritoItems?.Sum(item => item.Cantidad * (item.Producto?.Precio * (1 - item.Producto?.Descuento ?? 0) ?? 0)) ?? 0;
+    private decimal subtotal => carritoItems?.Sum(item => item.Cantidad * (item.ProductoVariacion?.Producto?.Precio * (1 - item.ProductoVariacion?.Producto?.Descuento ?? 0) ?? 0)) ?? 0;
 
     private readonly List<string> provinciasRD = new List<string>
     {
@@ -412,19 +412,20 @@
         foreach (var item in carritoItems!)
         {
             var productoVariacion = await DbContext.ProductoVariaciones
+              .Include(pv => pv.Producto) // Asegúrate de incluir el producto para acceder a sus propiedades
               .FirstOrDefaultAsync(pv => pv.Id == item.ProductoVariacionId);
 
             if (productoVariacion == null || productoVariacion.Stock < item.Cantidad)
             {
-                throw new InvalidOperationException($"Stock insuficiente para el producto {item.Producto.Nombre} ({item.ProductoVariacion.ValorAtributo}).");
+                throw new InvalidOperationException($"Stock insuficiente para el producto {item.ProductoVariacion.Producto.Nombre} ({item.ProductoVariacion.ValorAtributo}).");
             }
 
             detallesPedido.Add(new DetallePedido
             {
                 Pedido = nuevoPedido,
-                ProductoId = item.ProductoId,
+                ProductoId = item.ProductoVariacion.Producto.Id, // Corregido
                 Cantidad = item.Cantidad,
-                PrecioUnitario = item.Producto.Precio * (1 - item.Producto.Descuento)
+                PrecioUnitario = item.ProductoVariacion.Producto.Precio * (1 - item.ProductoVariacion.Producto.Descuento) // Corregido
             });
 
             productoVariacion.Stock -= item.Cantidad;
