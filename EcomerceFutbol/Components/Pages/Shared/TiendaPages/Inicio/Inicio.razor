@@ -5,6 +5,7 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
 @using Proyecto_Final.Data
+@using Proyecto_Final.Models
 @using Proyecto_Final.Models.Producto
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext DbContext
@@ -276,12 +277,10 @@
     </div>
 </section>
 
-<!-- Sección de Registro/Contacto -->
 <section class="py-16 bg-white">
     <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <!-- Contenido izquierdo -->
                 <div>
                     <h2 class="text-4xl font-bold text-gray-800 mb-6">¿No encuentras una camiseta?</h2>
                     <h3 class="text-2xl font-semibold text-gray-700 mb-8">Escríbenos:</h3>
@@ -307,36 +306,35 @@
                     </div>
                 </div>
 
-                <!-- Formulario derecho -->
                 <div class="bg-gray-50 rounded-xl p-8 shadow-lg">
-                    <EditForm Model="@contactForm" OnValidSubmit="@HandleValidSubmit">
+                    <EditForm Model="@sugerenciaForm" OnValidSubmit="@HandleValidSubmit">
                         <DataAnnotationsValidator />
                         <div class="space-y-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label for="nombre" class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
-                                    <InputText @bind-Value="contactForm.Nombre"
+                                    <InputText @bind-Value="sugerenciaForm.Nombre"
                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300"
                                                placeholder="Tu nombre" />
-                                    <ValidationMessage For="@(() => contactForm.Nombre)" class="text-red-500 text-sm mt-1" />
+                                    <ValidationMessage For="@(() => sugerenciaForm.Nombre)" class="text-red-500 text-sm mt-1" />
                                 </div>
                                 <div>
                                     <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Correo electrónico</label>
-                                    <InputText @bind-Value="contactForm.Email"
+                                    <InputText @bind-Value="sugerenciaForm.Email"
                                                type="email"
                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300"
                                                placeholder="tu@email.com" />
-                                    <ValidationMessage For="@(() => contactForm.Email)" class="text-red-500 text-sm mt-1" />
+                                    <ValidationMessage For="@(() => sugerenciaForm.Email)" class="text-red-500 text-sm mt-1" />
                                 </div>
                             </div>
 
                             <div>
                                 <label for="mensaje" class="block text-sm font-medium text-gray-700 mb-2">Mensaje</label>
-                                <InputTextArea @bind-Value="contactForm.Mensaje"
+                                <InputTextArea @bind-Value="sugerenciaForm.Mensaje"
                                                rows="4"
                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 resize-none"
                                                placeholder="Describe la camiseta que buscas: equipo, temporada, talla, etc." />
-                                <ValidationMessage For="@(() => contactForm.Mensaje)" class="text-red-500 text-sm mt-1" />
+                                <ValidationMessage For="@(() => sugerenciaForm.Mensaje)" class="text-red-500 text-sm mt-1" />
                             </div>
 
                             <button type="submit"
@@ -402,19 +400,19 @@
     private int currentBannerIndex = 0;
     private Timer? bannerTimer;
     private bool isBannerAutoPlaying = true;
-    private int autoPlayInterval = 5000; 
+    private int autoPlayInterval = 5000;
 
     private List<Producto> camisetas = new();
     private List<Producto> botines = new();
     private List<Producto> guantes = new();
-    private List<Producto> accesorios = new(); 
+    private List<Producto> accesorios = new();
 
     private bool isLoadingCamisetas = true;
     private bool isLoadingBotines = true;
     private bool isLoadingGuantes = true;
-    private bool isLoadingAccesorios = true; 
+    private bool isLoadingAccesorios = true;
 
-    private ContactFormModel contactForm = new();
+    private Sugerencia sugerenciaForm = new();
     private bool isSubmitting = false;
     private string submitMessage = "";
     private bool submitSuccess = false;
@@ -427,21 +425,6 @@
         public string Description { get; set; } = "";
         public string? ButtonText { get; set; }
         public string? ButtonUrl { get; set; }
-    }
-
-    public class ContactFormModel
-    {
-        [Required(ErrorMessage = "El nombre es requerido")]
-        [StringLength(100, ErrorMessage = "El nombre no puede exceder 100 caracteres")]
-        public string Nombre { get; set; } = "";
-
-        [Required(ErrorMessage = "El correo electrónico es requerido")]
-        [EmailAddress(ErrorMessage = "Ingrese un correo electrónico válido")]
-        public string Email { get; set; } = "";
-
-        [Required(ErrorMessage = "El mensaje es requerido")]
-        [StringLength(1000, MinimumLength = 10, ErrorMessage = "El mensaje debe tener entre 10 y 1000 caracteres")]
-        public string Mensaje { get; set; } = "";
     }
 
     protected override async Task OnInitializedAsync()
@@ -538,7 +521,7 @@
         }
         catch (Exception ex)
         {
-
+            // Manejo de errores
             isLoadingCamisetas = false;
             isLoadingBotines = false;
             isLoadingGuantes = false;
@@ -553,26 +536,25 @@
 
         try
         {
-            await Task.Delay(1500); 
-
-            bool emailSent = await SendContactEmail(contactForm);
-
-            if (emailSent)
+            var nuevaSugerencia = new Sugerencia
             {
-                submitSuccess = true;
-                submitMessage = "¡Mensaje enviado correctamente! Te contactaremos pronto.";
-                contactForm = new ContactFormModel();
-            }
-            else
-            {
-                submitSuccess = false;
-                submitMessage = "Error al enviar el mensaje. Por favor, inténtalo de nuevo.";
-            }
+                Nombre = sugerenciaForm.Nombre,
+                Email = sugerenciaForm.Email,
+                Mensaje = sugerenciaForm.Mensaje,
+                FechaCreacion = DateTime.UtcNow 
+            };
+
+            DbContext.Sugerencias.Add(nuevaSugerencia);
+            await DbContext.SaveChangesAsync();
+
+            submitSuccess = true;
+            submitMessage = "¡Tu sugerencia ha sido enviada correctamente!";
+            sugerenciaForm = new Sugerencia(); 
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             submitSuccess = false;
-            submitMessage = "Error al procesar la solicitud. Por favor, inténtalo más tarde.";
+            submitMessage = "Error al enviar la sugerencia. Por favor, inténtalo de nuevo más tarde.";
         }
         finally
         {
@@ -588,12 +570,6 @@
                 });
             });
         }
-    }
-
-    private async Task<bool> SendContactEmail(ContactFormModel form)
-    {
-        await Task.Delay(100);
-        return true;
     }
 
     private void StartBannerAutoPlay()
