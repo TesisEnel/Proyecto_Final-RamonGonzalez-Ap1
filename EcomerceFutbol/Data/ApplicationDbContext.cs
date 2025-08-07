@@ -21,6 +21,7 @@ namespace Proyecto_Final.Data
         public DbSet<Valoracion> Valoraciones { get; set; } = default!;
         public DbSet<DireccionEnvio> DireccionesEnvio { get; set; } = default!;
         public DbSet<ProductoVariacion> ProductoVariaciones { get; set; } = default!;
+        public DbSet<Sugerencia> Sugerencias { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
