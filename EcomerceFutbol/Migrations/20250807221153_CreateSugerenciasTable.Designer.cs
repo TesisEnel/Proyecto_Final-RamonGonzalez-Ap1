@@ -12,8 +12,8 @@ using Proyecto_Final.Data;
 namespace Proyecto_Final.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250727171550_NombreDeTuNuevaMigracion")]
-    partial class NombreDeTuNuevaMigracion
+    [Migration("20250807221153_CreateSugerenciasTable")]
+    partial class CreateSugerenciasTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -158,24 +158,13 @@ namespace Proyecto_Final.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Proyecto_Final.Models.Pedidos.Pedido", b =>
+            modelBuilder.Entity("Proyecto_Final.Models.Carrito.Carrito", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Estado")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("FechaPedido")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("Total")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("UsuarioId")
                         .IsRequired()
@@ -183,14 +172,12 @@ namespace Proyecto_Final.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FechaPedido");
-
                     b.HasIndex("UsuarioId");
 
-                    b.ToTable("Pedidos");
+                    b.ToTable("Carritos");
                 });
 
-            modelBuilder.Entity("Proyecto_Final.Models.Producto.CarritoItem", b =>
+            modelBuilder.Entity("Proyecto_Final.Models.Carrito.CarritoItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -198,29 +185,37 @@ namespace Proyecto_Final.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ApplicationUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("Cantidad")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("CarritoId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("FechaAgregado")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
-                    b.Property<int>("ProductoId")
+                    b.Property<int>("ProductoVariacionId")
                         .HasColumnType("int");
-
-                    b.Property<string>("UsuarioId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductoId");
+                    b.HasIndex("ApplicationUserId");
 
-                    b.HasIndex("UsuarioId");
+                    b.HasIndex("CarritoId");
+
+                    b.HasIndex("ProductoVariacionId");
 
                     b.ToTable("CarritoItems");
                 });
 
-            modelBuilder.Entity("Proyecto_Final.Models.Producto.DetallePedido", b =>
+            modelBuilder.Entity("Proyecto_Final.Models.Pedidos.DetallePedido", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -235,7 +230,7 @@ namespace Proyecto_Final.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("PrecioUnitario")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(18, 2)");
 
                     b.Property<int>("ProductoId")
                         .HasColumnType("int");
@@ -247,6 +242,68 @@ namespace Proyecto_Final.Migrations
                     b.HasIndex("ProductoId");
 
                     b.ToTable("DetallesPedido");
+                });
+
+            modelBuilder.Entity("Proyecto_Final.Models.Pedidos.Pedido", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApellidoEnvio")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CalleEnvio")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CiudadEnvio")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CodigoPostalEnvio")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("EstadoEnvio")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("FechaPedido")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NombreEnvio")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PaisEnvio")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TelefonoEnvio")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("UsuarioId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("Pedidos");
                 });
 
             modelBuilder.Entity("Proyecto_Final.Models.Producto.Producto", b =>
@@ -263,10 +320,11 @@ namespace Proyecto_Final.Migrations
 
                     b.Property<string>("Descripcion")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
-                    b.Property<int>("Descuento")
-                        .HasColumnType("int");
+                    b.Property<decimal>("Descuento")
+                        .HasColumnType("decimal(3,2)");
 
                     b.Property<bool>("EsNovedad")
                         .HasColumnType("bit");
@@ -276,27 +334,62 @@ namespace Proyecto_Final.Migrations
 
                     b.Property<string>("ImagenUrl")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<decimal>("Precio")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("Stock")
-                        .HasColumnType("int");
+                    b.Property<bool>("TieneVariaciones")
+                        .HasColumnType("bit");
 
-                    b.Property<double>("ValoracionPromedio")
-                        .HasColumnType("float");
+                    b.Property<decimal>("ValoracionPromedio")
+                        .HasColumnType("decimal(3,1)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Nombre");
 
                     b.ToTable("Productos");
+                });
+
+            modelBuilder.Entity("Proyecto_Final.Models.Producto.ProductoVariacion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("PrecioAdicional")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ProductoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Stock")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TipoAtributo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ValorAtributo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductoId");
+
+                    b.ToTable("ProductoVariaciones");
                 });
 
             modelBuilder.Entity("Proyecto_Final.Models.Producto.Valoracion", b =>
@@ -307,13 +400,27 @@ namespace Proyecto_Final.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Apellido")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Comentario")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
-                    b.Property<DateTime>("Fecha")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("CorreoElectronico")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("ProductoId")
                         .HasColumnType("int");
@@ -334,6 +441,36 @@ namespace Proyecto_Final.Migrations
                     b.ToTable("Valoraciones");
                 });
 
+            modelBuilder.Entity("Proyecto_Final.Models.Sugerencia", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Mensaje")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Sugerencias");
+                });
+
             modelBuilder.Entity("Proyecto_Final.Models.Usuario.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -342,14 +479,14 @@ namespace Proyecto_Final.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("Apellido")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Direccion")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -366,6 +503,11 @@ namespace Proyecto_Final.Migrations
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("NombreCompleto")
                         .IsRequired()
@@ -420,6 +562,11 @@ namespace Proyecto_Final.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Apellido")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("Calle")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -438,10 +585,25 @@ namespace Proyecto_Final.Migrations
                     b.Property<bool>("EsPrincipal")
                         .HasColumnType("bit");
 
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("Pais")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Telefono")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("UsuarioId")
                         .IsRequired()
@@ -505,37 +667,41 @@ namespace Proyecto_Final.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Proyecto_Final.Models.Pedidos.Pedido", b =>
+            modelBuilder.Entity("Proyecto_Final.Models.Carrito.Carrito", b =>
                 {
                     b.HasOne("Proyecto_Final.Models.Usuario.ApplicationUser", "Usuario")
-                        .WithMany("Pedidos")
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Usuario");
-                });
-
-            modelBuilder.Entity("Proyecto_Final.Models.Producto.CarritoItem", b =>
-                {
-                    b.HasOne("Proyecto_Final.Models.Producto.Producto", "Producto")
                         .WithMany()
-                        .HasForeignKey("ProductoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Proyecto_Final.Models.Usuario.ApplicationUser", "Usuario")
-                        .WithMany("CarritoItems")
                         .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Producto");
-
                     b.Navigation("Usuario");
                 });
 
-            modelBuilder.Entity("Proyecto_Final.Models.Producto.DetallePedido", b =>
+            modelBuilder.Entity("Proyecto_Final.Models.Carrito.CarritoItem", b =>
+                {
+                    b.HasOne("Proyecto_Final.Models.Usuario.ApplicationUser", null)
+                        .WithMany("CarritoItems")
+                        .HasForeignKey("ApplicationUserId");
+
+                    b.HasOne("Proyecto_Final.Models.Carrito.Carrito", "Carrito")
+                        .WithMany("Items")
+                        .HasForeignKey("CarritoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Proyecto_Final.Models.Producto.ProductoVariacion", "ProductoVariacion")
+                        .WithMany()
+                        .HasForeignKey("ProductoVariacionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Carrito");
+
+                    b.Navigation("ProductoVariacion");
+                });
+
+            modelBuilder.Entity("Proyecto_Final.Models.Pedidos.DetallePedido", b =>
                 {
                     b.HasOne("Proyecto_Final.Models.Pedidos.Pedido", "Pedido")
                         .WithMany("Detalles")
@@ -546,10 +712,32 @@ namespace Proyecto_Final.Migrations
                     b.HasOne("Proyecto_Final.Models.Producto.Producto", "Producto")
                         .WithMany("DetallesPedido")
                         .HasForeignKey("ProductoId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Pedido");
+
+                    b.Navigation("Producto");
+                });
+
+            modelBuilder.Entity("Proyecto_Final.Models.Pedidos.Pedido", b =>
+                {
+                    b.HasOne("Proyecto_Final.Models.Usuario.ApplicationUser", "Usuario")
+                        .WithMany("Pedidos")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("Proyecto_Final.Models.Producto.ProductoVariacion", b =>
+                {
+                    b.HasOne("Proyecto_Final.Models.Producto.Producto", "Producto")
+                        .WithMany("Variaciones")
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Producto");
                 });
@@ -565,7 +753,7 @@ namespace Proyecto_Final.Migrations
                     b.HasOne("Proyecto_Final.Models.Usuario.ApplicationUser", "Usuario")
                         .WithMany("Valoraciones")
                         .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Producto");
@@ -584,6 +772,11 @@ namespace Proyecto_Final.Migrations
                     b.Navigation("Usuario");
                 });
 
+            modelBuilder.Entity("Proyecto_Final.Models.Carrito.Carrito", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("Proyecto_Final.Models.Pedidos.Pedido", b =>
                 {
                     b.Navigation("Detalles");
@@ -594,6 +787,8 @@ namespace Proyecto_Final.Migrations
                     b.Navigation("DetallesPedido");
 
                     b.Navigation("Valoraciones");
+
+                    b.Navigation("Variaciones");
                 });
 
             modelBuilder.Entity("Proyecto_Final.Models.Usuario.ApplicationUser", b =>
