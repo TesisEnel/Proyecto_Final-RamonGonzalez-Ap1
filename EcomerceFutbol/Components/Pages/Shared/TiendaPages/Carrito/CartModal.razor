@@ -2,10 +2,11 @@
 @using Proyecto_Final.Services
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Http
 @inject ICarritoService CarritoService
-@inject IAnonymousCartService AnonymousCartService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject IHttpContextAccessor HttpContextAccessor
 
 @if (IsVisible)
 {
@@ -120,37 +121,45 @@
     private List<CarritoItem> carritoItems = new();
     private bool isLoggedIn;
     private string? usuarioId;
+    private string? sessionId; // Nueva propiedad para almacenar el sessionId
+
     private decimal total => carritoItems?.Sum(item => item.Cantidad * item.ProductoVariacion.Producto.Precio * (1 - item.ProductoVariacion.Producto.Descuento)) ?? 0;
 
     protected override async Task OnParametersSetAsync()
     {
         if (IsVisible)
         {
-            await LoadAuthenticationState();
+            await LoadCartIdentifiers();
             await LoadCartItems();
         }
     }
 
-    private async Task LoadAuthenticationState()
+    private async Task LoadCartIdentifiers()
     {
         var authState = await authenticationStateTask;
         var user = authState.User;
         isLoggedIn = user.Identity?.IsAuthenticated ?? false;
-        usuarioId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (isLoggedIn)
+        {
+            usuarioId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            sessionId = null;
+        }
+        else
+        {
+            usuarioId = null;
+            // Obtener el sessionId si el usuario no está autenticado
+            var httpContext = HttpContextAccessor.HttpContext;
+            sessionId = httpContext?.Session.Id;
+        }
     }
 
     private async Task LoadCartItems()
     {
         try
         {
-            if (isLoggedIn && !string.IsNullOrEmpty(usuarioId))
-            {
-                carritoItems = await CarritoService.ObtenerItemsDelCarritoAsync(usuarioId);
-            }
-            else
-            {
-                carritoItems = await AnonymousCartService.GetAnonymousCartItemsAsync();
-            }
+            // Llama al servicio pasando ambos parámetros
+            carritoItems = await CarritoService.ObtenerItemsDelCarritoAsync(usuarioId, sessionId);
             StateHasChanged();
         }
         catch (Exception ex)
@@ -170,14 +179,8 @@
     {
         try
         {
-            if (isLoggedIn)
-            {
-                await CarritoService.EliminarDelCarritoAsync(item.Id);
-            }
-            else
-            {
-                await AnonymousCartService.RemoveFromAnonymousCartAsync(item.ProductoVariacionId);
-            }
+            // Pasa ambos parámetros al servicio
+            await CarritoService.EliminarDelCarritoAsync(item.Id, usuarioId, sessionId);
 
             await LoadCartItems();
             await OnCartUpdated.InvokeAsync();
@@ -220,7 +223,7 @@
     public async Task ShowModal()
     {
         IsVisible = true;
-        await LoadAuthenticationState();
+        await LoadCartIdentifiers();
         await LoadCartItems();
         StateHasChanged();
     }

@@ -2,14 +2,16 @@
 @rendermode InteractiveServer
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Http
 @using MudBlazor
 @using Proyecto_Final.Models.Carrito
 @using Proyecto_Final.Services
 @inject ICarritoService CarritoService
-@inject IAnonymousCartService AnonymousCartService
 @inject NavigationManager NavManager
 @inject ILogger<Carrito> Logger
 @inject ISnackbar Snackbar
+@inject IHttpContextAccessor HttpContextAccessor
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Mi Carrito - Golazo Store</PageTitle>
 
@@ -104,6 +106,7 @@
     private List<CarritoItem>? carritoItems;
     private bool isLoading = true;
     private string? usuarioId;
+    private string? sessionId;
     private bool isLoggedIn = false;
 
     private decimal subtotal =>
@@ -113,16 +116,27 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAuthenticationStateAsync();
+        await LoadCartIdentifiers();
         await LoadCartAsync();
     }
 
-    private async Task LoadAuthenticationStateAsync()
+    private async Task LoadCartIdentifiers()
     {
         var authState = await authenticationStateTask;
         var user = authState.User;
         isLoggedIn = user.Identity?.IsAuthenticated ?? false;
-        usuarioId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (isLoggedIn)
+        {
+            usuarioId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            sessionId = null;
+        }
+        else
+        {
+            usuarioId = null;
+            var httpContext = HttpContextAccessor.HttpContext;
+            sessionId = httpContext?.Session.Id;
+        }
     }
 
     private async Task LoadCartAsync()
@@ -130,9 +144,7 @@
         isLoading = true;
         try
         {
-            carritoItems = isLoggedIn && !string.IsNullOrEmpty(usuarioId)
-                ? await CarritoService.ObtenerItemsDelCarritoAsync(usuarioId)
-                : await AnonymousCartService.GetAnonymousCartItemsAsync();
+            carritoItems = await CarritoService.ObtenerItemsDelCarritoAsync(usuarioId, sessionId);
         }
         catch (Exception ex)
         {
@@ -150,11 +162,7 @@
     {
         try
         {
-            if (isLoggedIn)
-                await CarritoService.EliminarDelCarritoAsync(item.Id);
-            else
-                await AnonymousCartService.RemoveFromAnonymousCartAsync(item.ProductoVariacionId);
-
+            await CarritoService.EliminarDelCarritoAsync(item.Id, usuarioId, sessionId);
             await LoadCartAsync();
             Snackbar.Add($"'{item.ProductoVariacion.Producto?.Nombre}' eliminado.", Severity.Info);
         }
@@ -175,11 +183,7 @@
                 return;
             }
 
-            if (isLoggedIn)
-                await CarritoService.ActualizarCantidadAsync(item.Id, item.Cantidad);
-            else
-                await AnonymousCartService.UpdateAnonymousCartItemAsync(item.ProductoVariacionId, item.Cantidad);
-
+            await CarritoService.ActualizarCantidadAsync(item.Id, item.Cantidad, usuarioId, sessionId);
             await LoadCartAsync();
             Snackbar.Add($"Cantidad actualizada: '{item.ProductoVariacion.Producto?.Nombre}'", Severity.Success);
         }

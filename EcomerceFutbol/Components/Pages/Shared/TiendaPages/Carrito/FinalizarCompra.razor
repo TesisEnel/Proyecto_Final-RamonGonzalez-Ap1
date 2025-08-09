@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Http
 @using Microsoft.EntityFrameworkCore
 @using Proyecto_Final.Data
 @using Proyecto_Final.Models.Carrito
@@ -14,12 +15,13 @@
 @using Proyecto_Final.Models.Producto
 @using Proyecto_Final.Services
 @inject ICarritoService CarritoService
-@inject IAnonymousCartService AnonymousCartService
 @inject NavigationManager NavManager
 @inject ILogger<FinalizarCompra> Logger
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ApplicationDbContext DbContext
 @inject UserManager<ApplicationUser> UserManager
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IPedidoService PedidoService
 
 <div class="container mx-auto px-4 py-8 max-w-7xl">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -32,6 +34,18 @@
                     <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/MasterCard_Logo.svg" alt="Mastercard" class="h-6 object-contain" />
                     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/American_Express_logo_%282018%29.svg/1200px-American_Express_logo_%282018%29.svg.png" alt="American Express" class="h-6 object-contain" />
                 </div>
+
+                @* Mensaje para usuarios no autenticados *@
+                @if (!isLoggedIn)
+                {
+                    <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-lg" role="alert">
+                        <p class="font-bold">¡Casi terminas!</p>
+                        <p>
+                            Para completar tu compra, por favor <a href="/Identity/Account/Login?returnUrl=/checkout" class="font-bold underline text-yellow-800 hover:text-yellow-900">inicia sesión</a>.
+                            Tus productos seguirán en el carrito.
+                        </p>
+                    </div>
+                }
 
                 @if (isLoading)
                 {
@@ -159,7 +173,9 @@
                         }
 
                         <div class="mt-8">
-                            <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-4 rounded-lg transition-colors duration-300">
+                            <button type="submit"
+                                    class="w-full bg-black hover:bg-gray-800 text-white font-bold py-4 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled="@(!isLoggedIn)">
                                 Pagar ahora
                             </button>
                         </div>
@@ -230,20 +246,11 @@
     private List<CarritoItem>? carritoItems;
     private bool isLoading = true;
     private string? usuarioId;
+    private string? sessionId;
     private bool isLoggedIn = false;
     private DireccionEnvio? defaultAddress;
     private ApplicationUser? currentUser;
-    private bool pagoExitoso = false; // Nueva variable para controlar el mensaje de éxito
-
-    private bool useShippingAsBilling
-    {
-        get => _useShippingAsBilling;
-        set
-        {
-            _useShippingAsBilling = value;
-            OnUseShippingAsBillingChanged();
-        }
-    }
+    private bool pagoExitoso = false;
     private bool _useShippingAsBilling = false;
     private string? errorMessage;
     private decimal subtotal => carritoItems?.Sum(item => item.Cantidad * (item.ProductoVariacion?.Producto?.Precio * (1 - item.ProductoVariacion?.Producto?.Descuento ?? 0) ?? 0)) ?? 0;
@@ -260,22 +267,47 @@
         "Valverde"
     };
 
+    private bool useShippingAsBilling
+    {
+        get => _useShippingAsBilling;
+        set
+        {
+            _useShippingAsBilling = value;
+            OnUseShippingAsBillingChanged();
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        await LoadAuthenticationStateAsync();
+        // Obtener el estado de autenticación del usuario
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isLoggedIn = user.Identity?.IsAuthenticated ?? false;
+
+        // Cargar los identificadores del carrito
+        await LoadCartIdentifiers(user);
+        // Cargar los items del carrito, ya sea para un usuario logueado o anónimo
         await LoadCartAsync();
+
         if (isLoggedIn && !string.IsNullOrEmpty(usuarioId))
         {
             await LoadUserDataAsync();
         }
     }
 
-    private async Task LoadAuthenticationStateAsync()
+    private async Task LoadCartIdentifiers(ClaimsPrincipal user)
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        isLoggedIn = user.Identity?.IsAuthenticated ?? false;
-        usuarioId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (isLoggedIn)
+        {
+            usuarioId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            sessionId = null;
+        }
+        else
+        {
+            usuarioId = null;
+            var httpContext = HttpContextAccessor.HttpContext;
+            sessionId = httpContext?.Session.Id;
+        }
     }
 
     private async Task LoadCartAsync()
@@ -283,14 +315,7 @@
         isLoading = true;
         try
         {
-            if (isLoggedIn && !string.IsNullOrEmpty(usuarioId))
-            {
-                carritoItems = await CarritoService.ObtenerItemsDelCarritoAsync(usuarioId);
-            }
-            else
-            {
-                carritoItems = await AnonymousCartService.GetAnonymousCartItemsAsync();
-            }
+            carritoItems = await CarritoService.ObtenerItemsDelCarritoAsync(usuarioId, sessionId);
 
             if (carritoItems == null || !carritoItems.Any())
             {
@@ -343,12 +368,18 @@
             Input.CodigoPostal = string.Empty;
             Input.Pais = "República Dominicana";
         }
-
         StateHasChanged();
     }
 
     private async Task HandleValidSubmit()
     {
+        // Validar si el usuario está logueado antes de procesar el pago
+        if (!isLoggedIn)
+        {
+            errorMessage = "Debes iniciar sesión para poder pagar ahora.";
+            return;
+        }
+
         isLoading = true;
         errorMessage = null;
 
@@ -365,12 +396,9 @@
 
             await FinalizarPedidoAsync();
 
-            if (!isLoggedIn)
-            {
-                await AnonymousCartService.ClearAnonymousCartAsync();
-            }
+            // Llama al servicio de carrito para limpiar el carrito, ya sea por userId
+            await CarritoService.LimpiarCarritoAsync(usuarioId, sessionId);
 
-            // Establece la variable para mostrar el mensaje de éxito
             pagoExitoso = true;
         }
         catch (Exception ex)
@@ -387,9 +415,9 @@
 
     private async Task FinalizarPedidoAsync()
     {
-        if (string.IsNullOrEmpty(usuarioId))
+        if (!isLoggedIn)
         {
-            throw new InvalidOperationException("El usuario no está autenticado.");
+            throw new InvalidOperationException("Solo usuarios autenticados pueden crear pedidos.");
         }
 
         var nuevoPedido = new Pedido
@@ -412,7 +440,7 @@
         foreach (var item in carritoItems!)
         {
             var productoVariacion = await DbContext.ProductoVariaciones
-              .Include(pv => pv.Producto) // Asegúrate de incluir el producto para acceder a sus propiedades
+              .Include(pv => pv.Producto)
               .FirstOrDefaultAsync(pv => pv.Id == item.ProductoVariacionId);
 
             if (productoVariacion == null || productoVariacion.Stock < item.Cantidad)
@@ -423,9 +451,9 @@
             detallesPedido.Add(new DetallePedido
             {
                 Pedido = nuevoPedido,
-                ProductoId = item.ProductoVariacion.Producto.Id, // Corregido
+                ProductoId = item.ProductoVariacion.Producto.Id,
                 Cantidad = item.Cantidad,
-                PrecioUnitario = item.ProductoVariacion.Producto.Precio * (1 - item.ProductoVariacion.Producto.Descuento) // Corregido
+                PrecioUnitario = item.ProductoVariacion.Producto.Precio * (1 - item.ProductoVariacion.Producto.Descuento)
             });
 
             productoVariacion.Stock -= item.Cantidad;
@@ -434,19 +462,11 @@
         nuevoPedido.Detalles = detallesPedido;
         DbContext.Pedidos.Add(nuevoPedido);
 
-        var carritoDelUsuario = await DbContext.Carritos
-      .Include(c => c.Items)
-      .FirstOrDefaultAsync(c => c.UsuarioId == usuarioId);
-
-        if (carritoDelUsuario != null)
-        {
-            DbContext.CarritoItems.RemoveRange(carritoDelUsuario.Items);
-        }
-
         await DbContext.SaveChangesAsync();
-        Logger.LogInformation($"Pedido {nuevoPedido.Id} creado exitosamente para el usuario {usuarioId}.");
+        Logger.LogInformation($"Pedido {nuevoPedido.Id} creado exitosamente.");
     }
 
+    // Modelo de datos para el formulario de pago
     private class InputModel
     {
         [Required(ErrorMessage = "El número de tarjeta es obligatorio.")]
@@ -463,20 +483,25 @@
         [Required(ErrorMessage = "El nombre del titular es obligatorio.")]
         public string NombreTitular { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
         public string Nombre { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "El apellido es obligatorio.")]
         public string Apellido { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "La calle es obligatoria.")]
         public string Calle { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "La ciudad es obligatoria.")]
         public string Ciudad { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "La provincia es obligatoria.")]
         public string Estado { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "El código postal es obligatorio.")]
         public string CodigoPostal { get; set; } = string.Empty;
 
         public string Pais { get; set; } = "República Dominicana";
-
         public string Telefono { get; set; } = string.Empty;
         public string CodigoDescuento { get; set; } = string.Empty;
     }
