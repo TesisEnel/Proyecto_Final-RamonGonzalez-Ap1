@@ -11,6 +11,7 @@
 @using System.Globalization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Http
 
 @inject ApplicationDbContext DbContext
 @inject ICarritoService CarritoService
@@ -18,6 +19,7 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IProductoService ProductoService
+@inject IHttpContextAccessor HttpContextAccessor
 
 <PageTitle>Detalle del Producto</PageTitle>
 
@@ -113,7 +115,7 @@ else
                                     {
                                         <button @onclick="() => SelectVariacion(variacion.Id)"
                                                 class="@(selectedVariacionId == variacion.Id ? "bg-black text-white border-black" : "bg-white text-gray-900 border-gray-300 hover:border-gray-400")
-                                                                   px-6 py-3 border-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
+                                                                               px-6 py-3 border-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
                                             @variacion.ValorAtributo
                                         </button>
                                     }
@@ -363,7 +365,7 @@ else
                                                         <button type="button"
                                                                 @onclick="() => SetRating(starValue)"
                                                                 class="@(nuevaValoracion.Puntuacion >= starValue ? "text-yellow-400" : "text-gray-300")
-                                                                                    hover:text-yellow-400 transition-colors focus:outline-none transform hover:scale-110 duration-200">
+                                                                                                    hover:text-yellow-400 transition-colors focus:outline-none transform hover:scale-110 duration-200">
                                                             <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
                                                             </svg>
@@ -507,7 +509,6 @@ else
         producto = null;
         productosRecomendados = new List<Producto>();
         mostrarDescripcion = false;
-
         // Resetear las propiedades de reseñas
         valoraciones = new List<Valoracion>();
         nuevaValoracion = new Valoracion();
@@ -659,11 +660,42 @@ else
             return;
         }
 
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        string? userId = null;
+        string? sessionId = null;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+        else
+        {
+            // Lógica para usuarios no autenticados
+            var httpContext = HttpContextAccessor.HttpContext;
+            if (httpContext != null)
+            {
+                sessionId = httpContext.Session.Id;
+            }
+            else
+            {
+                // Manejar el caso en que no se pueda acceder a HttpContext
+                mensajeCarrito = "No se pudo gestionar el carrito. Por favor, vuelva a intentarlo.";
+                return;
+            }
+        }
+
+        if (string.IsNullOrEmpty(userId) && string.IsNullOrEmpty(sessionId))
+        {
+            mensajeCarrito = "No se pudo identificar al usuario ni al invitado.";
+            return;
+        }
 
         try
         {
-            // No se requiere iniciar sesión para agregar al carrito, solo se necesita el ID de la variación y la cantidad
-            await CarritoService.AgregarOActualizarItemAsync(null, selectedVariacionId, cantidad);
+            // Pasa el ID del usuario O el ID de la sesión al servicio
+            await CarritoService.AgregarOActualizarItemAsync(userId, sessionId, selectedVariacionId, cantidad);
             mensajeCarrito = "Producto agregado con éxito al carrito.";
 
 
