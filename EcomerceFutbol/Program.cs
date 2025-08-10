@@ -62,12 +62,9 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
-// Configuración necesaria para el carrito de anónimos
-// 1. Agrega el servicio de caché distribuida en memoria.
-//    Esto es indispensable para que el servicio de sesión funcione.
+
 builder.Services.AddDistributedMemoryCache();
 
-// 2. Agrega el servicio de sesión con la configuración deseada.
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -95,7 +92,6 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
@@ -110,8 +106,6 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// 3. Añade el middleware de sesión en el orden correcto.
-//    Debe ir después de app.UseRouting() y antes de app.UseAuthentication().
 app.UseSession();
 
 app.UseAuthentication();
