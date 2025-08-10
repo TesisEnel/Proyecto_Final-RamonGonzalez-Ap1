@@ -30,7 +30,7 @@
             <i class="fas fa-shopping-cart text-gray-400 text-6xl mb-4"></i>
             <p class="text-2xl font-semibold text-gray-700 mb-2">Tu carrito está vacío</p>
             <p class="text-gray-500 mb-6">Parece que aún no has añadido productos a tu carrito de compras.</p>
-            <NavLink href="/productos" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-colors duration-300">
+            <NavLink href="/camisetas" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-colors duration-300">
                 Explorar productos
             </NavLink>
         </div>
@@ -43,8 +43,8 @@
                 {
                     <div class="bg-white p-4 rounded-xl shadow-md border border-gray-200 mb-4 flex items-center">
                         <img src="@item.ProductoVariacion.Producto.ImagenUrl" alt="@item.ProductoVariacion.Producto.Nombre"
-                             class="w-24 h-24 object-cover rounded-lg mr-4"
-                             onerror="this.onerror=null;this.src='https://placehold.co/100x100/E0E0E0/6C757D?text=No+img';" />
+                                            class="w-24 h-24 object-cover rounded-lg mr-4"
+                                            onerror="this.onerror=null;this.src='https://placehold.co/100x100/E0E0E0/6C757D?text=No+img';" />
                         <div class="flex-grow">
                             <h3 class="text-lg font-bold text-gray-800">@item.ProductoVariacion.Producto.Nombre</h3>
                             @if (!string.IsNullOrEmpty(item.ProductoVariacion?.ValorAtributo))
@@ -57,12 +57,12 @@
                         </div>
                         <div class="flex items-center space-x-4">
                             <input @bind="item.Cantidad"
-                                   @bind:after="() => UpdateCantidadAsync(item)"
-                                   type="number"
-                                   min="1"
-                                   max="@(item.ProductoVariacion?.Stock ?? 100)"
-                                   class="w-16 text-center border rounded-lg py-1"
-                                   @oninput="e => item.Cantidad = Math.Max(1, int.TryParse(e.Value?.ToString(), out var v) ? v : 1)" />
+                                                     @bind:after="() => UpdateCantidadAsync(item)"
+                                                     type="number"
+                                                     min="1"
+                                                     max="@(item.ProductoVariacion?.Stock ?? 100)"
+                                                     class="w-16 text-center border rounded-lg py-1"
+                                                     @oninput="e => item.Cantidad = Math.Max(1, int.TryParse(e.Value?.ToString(), out var v) ? v : 1)" />
                             <p class="font-bold text-xl">
                                 @((item.Cantidad * ((item.ProductoVariacion.Producto?.Precio ?? 0m) * (1 - (item.ProductoVariacion.Producto?.Descuento ?? 0m)))).ToString("C"))
                             </p>
@@ -110,9 +110,9 @@
     private bool isLoggedIn = false;
 
     private decimal subtotal =>
-        carritoItems?.Sum(item =>
-            item.Cantidad * ((item.ProductoVariacion.Producto?.Precio ?? 0m) * (1 - (item.ProductoVariacion.Producto?.Descuento ?? 0m)))
-        ) ?? 0m;
+      carritoItems?.Sum(item =>
+        item.Cantidad * ((item.ProductoVariacion.Producto?.Precio ?? 0m) * (1 - (item.ProductoVariacion.Producto?.Descuento ?? 0m)))
+      ) ?? 0m;
 
     protected override async Task OnInitializedAsync()
     {
@@ -193,7 +193,6 @@
             Snackbar.Add("Error al actualizar la cantidad.", Severity.Error);
         }
     }
-
     private void ProcesarCompra()
     {
         if (carritoItems == null || !carritoItems.Any())
@@ -202,14 +201,6 @@
             return;
         }
 
-        if (!isLoggedIn)
-        {
-            Snackbar.Add("Debe iniciar sesión para continuar.", Severity.Info);
-            NavManager.NavigateTo($"/Account/Login?returnUrl={Uri.EscapeDataString(NavManager.Uri)}");
-        }
-        else
-        {
-            NavManager.NavigateTo("/checkout");
-        }
+        NavManager.NavigateTo("/checkout");
     }
 }

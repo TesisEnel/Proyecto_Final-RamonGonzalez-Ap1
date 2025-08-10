@@ -1,21 +1,22 @@
-﻿@page "/adminsugerencias"
+﻿@page "/adminreseñas"
 @rendermode InteractiveServer
 
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
 @using Proyecto_Final.Data
-@using Proyecto_Final.Models
+@using Proyecto_Final.Models.Producto
+@using Proyecto_Final.Models.Usuario
 @inject ApplicationDbContext DbContext
-@inject ILogger<AdminSugerencias> Logger
+@inject ILogger<AdminReseñas> Logger
 @inject NavigationManager NavManager
 
 @attribute [Authorize(Roles = "Admin")]
 
-<PageTitle>Administración de Sugerencias - Golazo Store</PageTitle>
+<PageTitle>Administración de Reseñas - Golazo Store</PageTitle>
 
 <div class="container mx-auto px-4 py-8 max-w-7xl">
     <div class="bg-white p-8 rounded-xl shadow-md border border-gray-200">
-        <h1 class="text-3xl font-bold mb-6 text-gray-800">Administración de Sugerencias</h1>
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">Administración de Reseñas</h1>
 
         <div class="mb-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
             <div>
@@ -26,20 +27,35 @@
                 <label for="fecha-fin" class="block text-sm font-medium text-gray-700">Hasta</label>
                 <input type="date" id="fecha-fin" @bind="fechaFin" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm">
             </div>
-            <div>
+            <div class="md:col-span-1">
                 <label for="filtro-campo" class="block text-sm font-medium text-gray-700">Filtrar por</label>
                 <InputSelect id="filtro-campo" @bind-Value="filtroCampo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm">
                     <option value="Nombre">Nombre</option>
-                    <option value="Email">Email</option>
-                    <option value="Mensaje">Mensaje</option>
+                    <option value="Apellido">Apellido</option>
+                    <option value="CorreoElectronico">Correo Electrónico</option>
+                    <option value="Puntuacion">Puntuación</option>
+                    <option value="Comentario">Comentario</option>
                 </InputSelect>
             </div>
             <div>
                 <label for="filtro-valor" class="block text-sm font-medium text-gray-700">Buscar</label>
-                <input type="text" id="filtro-valor" @bind="filtroValor" @bind:event="oninput" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm" placeholder="Escribe para buscar...">
+                @if (filtroCampo == "Puntuacion")
+                {
+                    <InputSelect id="filtro-valor" @bind-Value="filtroValor" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm">
+                        <option value="">Todas</option>
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <option value="@i">@i estrellas</option>
+                        }
+                    </InputSelect>
+                }
+                else
+                {
+                    <input type="text" id="filtro-valor" @bind="filtroValor" @bind:event="oninput" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm" placeholder="Escribe para buscar...">
+                }
             </div>
             <div class="col-span-1 md:col-span-3 lg:col-span-4 flex space-x-2 mt-4">
-                <button @onclick="FiltrarSugerencias" class="w-full md:w-auto px-4 py-2 bg-yellow-500 text-white font-semibold rounded-md shadow hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">
+                <button @onclick="FiltrarReseñas" class="w-full md:w-auto px-4 py-2 bg-yellow-500 text-white font-semibold rounded-md shadow hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">
                     Filtrar
                 </button>
                 <button @onclick="LimpiarFiltros" class="w-full md:w-auto px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md shadow hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
@@ -52,17 +68,17 @@
         {
             <div class="flex flex-col items-center justify-center py-20">
                 <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-500"></div>
-                <p class="mt-4 text-gray-600 font-medium">Cargando sugerencias...</p>
+                <p class="mt-4 text-gray-600 font-medium">Cargando reseñas...</p>
             </div>
         }
-        else if (sugerencias == null || !sugerencias.Any())
+        else if (valoraciones == null || !valoraciones.Any())
         {
             <div class="text-center text-gray-500 py-10">
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No hay sugerencias para mostrar</h3>
-                <p class="mt-1 text-sm text-gray-500">Actualmente no hay sugerencias que coincidan con los filtros aplicados.</p>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No hay reseñas para mostrar</h3>
+                <p class="mt-1 text-sm text-gray-500">Actualmente no hay reseñas que coincidan con los filtros aplicados.</p>
             </div>
         }
         else
@@ -71,32 +87,40 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Autor</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mensaje</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Puntuación</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comentario</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
                             <th scope="col" class="relative px-6 py-3"><span class="sr-only">Acciones</span></th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach (var sugerencia in sugerencias)
+                        @foreach (var valoracion in valoraciones)
                         {
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    @sugerencia.Nombre
+                                    @valoracion.Producto?.Nombre
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    @valoracion.Nombre @valoracion.Apellido
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @sugerencia.Email
+                                    @valoracion.CorreoElectronico
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @valoracion.Puntuacion / 5
                                 </td>
                                 <td class="px-6 py-4 whitespace-normal text-sm text-gray-900 max-w-xs">
-                                    @sugerencia.Mensaje
+                                    @valoracion.Comentario
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @sugerencia.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                    @valoracion.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                    <button @onclick="() => AbrirModalEditar(sugerencia)" class="text-yellow-600 hover:text-yellow-800">Editar</button>
-                                    <button @onclick="() => AbrirModalEliminar(sugerencia)" class="text-red-600 hover:text-red-900">Eliminar</button>
+                                    <button @onclick="() => AbrirModalEditar(valoracion)" class="text-yellow-600 hover:text-yellow-800">Editar</button>
+                                    <button @onclick="() => AbrirModalEliminar(valoracion)" class="text-red-600 hover:text-red-900">Eliminar</button>
                                 </td>
                             </tr>
                         }
@@ -123,22 +147,35 @@
                         </div>
                         <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                             <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                                Editar Sugerencia
+                                Editar Reseña
                             </h3>
                             <div class="mt-4">
-                                @if (sugerenciaSeleccionada != null)
+                                @if (valoracionSeleccionada != null)
                                 {
                                     <div class="mb-4">
                                         <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre</label>
-                                        <input type="text" id="nombre" @bind="sugerenciaSeleccionada.Nombre" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm" />
+                                        <input type="text" id="nombre" @bind="valoracionSeleccionada.Nombre" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm" />
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="apellido" class="block text-sm font-medium text-gray-700">Apellido</label>
+                                        <input type="text" id="apellido" @bind="valoracionSeleccionada.Apellido" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm" />
                                     </div>
                                     <div class="mb-4">
                                         <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                                        <input type="email" id="email" @bind="sugerenciaSeleccionada.Email" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm" />
+                                        <input type="email" id="email" @bind="valoracionSeleccionada.CorreoElectronico" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm" />
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="puntuacion" class="block text-sm font-medium text-gray-700">Puntuación</label>
+                                        <select id="puntuacion" @bind="valoracionSeleccionada.Puntuacion" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm">
+                                            @for (int i = 1; i <= 5; i++)
+                                            {
+                                                <option value="@i">@i estrellas</option>
+                                            }
+                                        </select>
                                     </div>
                                     <div>
-                                        <label for="mensaje" class="block text-sm font-medium text-gray-700">Mensaje</label>
-                                        <textarea id="mensaje" @bind="sugerenciaSeleccionada.Mensaje" rows="5" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"></textarea>
+                                        <label for="comentario" class="block text-sm font-medium text-gray-700">Comentario</label>
+                                        <textarea id="comentario" @bind="valoracionSeleccionada.Comentario" rows="5" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"></textarea>
                                     </div>
                                 }
                             </div>
@@ -146,7 +183,7 @@
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button" @onclick="UpdateSugerencia" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="button" @onclick="UpdateValoracion" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:ml-3 sm:w-auto sm:text-sm">
                         Guardar Cambios
                     </button>
                     <button type="button" @onclick="CerrarModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
@@ -174,18 +211,18 @@
                         </div>
                         <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                             <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                                Eliminar Sugerencia
+                                Eliminar Reseña
                             </h3>
                             <div class="mt-2">
                                 <p class="text-sm text-gray-500">
-                                    ¿Estás seguro de que quieres eliminar esta sugerencia de forma permanente? Esta acción no se puede deshacer.
+                                    ¿Estás seguro de que quieres eliminar esta reseña de forma permanente? Esta acción no se puede deshacer.
                                 </p>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button" @onclick="EliminarSugerencia" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="button" @onclick="EliminarValoracion" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
                         Eliminar
                     </button>
                     <button type="button" @onclick="CerrarModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
@@ -198,60 +235,71 @@
 }
 
 @code {
-    private List<Sugerencia>? sugerencias;
+    private List<Valoracion>? valoraciones;
     private bool isLoading = true;
-    private Sugerencia? sugerenciaSeleccionada;
+    private Valoracion? valoracionSeleccionada;
     private bool mostrarModalEditar = false;
     private bool mostrarModalEliminar = false;
 
     private DateTime? fechaInicio;
     private DateTime? fechaFin;
-    private string filtroCampo = "Nombre";
+    private string filtroCampo = "Nombre"; // Campo de filtro por defecto
     private string filtroValor = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadSugerencias();
+        await LoadValoraciones();
     }
 
-    private async Task LoadSugerencias()
+    private async Task LoadValoraciones()
     {
         isLoading = true;
         try
         {
-            var query = DbContext.Sugerencias.AsQueryable();
+            var query = DbContext.Valoraciones
+                .Include(v => v.Producto)
+                .AsQueryable();
 
             if (fechaInicio.HasValue)
             {
-                query = query.Where(s => s.FechaCreacion >= fechaInicio.Value.Date);
+                query = query.Where(v => v.FechaCreacion >= fechaInicio.Value.Date);
             }
             if (fechaFin.HasValue)
             {
-                query = query.Where(s => s.FechaCreacion < fechaFin.Value.Date.AddDays(1));
+                query = query.Where(v => v.FechaCreacion < fechaFin.Value.Date.AddDays(1));
             }
             if (!string.IsNullOrEmpty(filtroValor))
             {
                 switch (filtroCampo)
                 {
                     case "Nombre":
-                        query = query.Where(s => s.Nombre != null && s.Nombre.Contains(filtroValor));
+                        query = query.Where(v => v.Nombre != null && v.Nombre.Contains(filtroValor));
                         break;
-                    case "Email":
-                        query = query.Where(s => s.Email != null && s.Email.Contains(filtroValor));
+                    case "Apellido":
+                        query = query.Where(v => v.Apellido != null && v.Apellido.Contains(filtroValor));
                         break;
-                    case "Mensaje":
-                        query = query.Where(s => s.Mensaje.Contains(filtroValor));
+                    case "CorreoElectronico":
+                        query = query.Where(v => v.CorreoElectronico != null && v.CorreoElectronico.Contains(filtroValor));
+                        break;
+                    case "Comentario":
+                        query = query.Where(v => v.Comentario.Contains(filtroValor));
+                        break;
+                    case "Puntuacion":
+                        if (int.TryParse(filtroValor, out int puntuacion))
+                        {
+                            query = query.Where(v => v.Puntuacion == puntuacion);
+                        }
                         break;
                 }
             }
 
-            sugerencias = await query
-                .OrderByDescending(s => s.FechaCreacion)
+            valoraciones = await query
+                .OrderByDescending(v => v.FechaCreacion)
                 .ToListAsync();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error al cargar las sugerencias.");
+            Logger.LogError(ex, "Error al cargar las valoraciones.");
         }
         finally
         {
@@ -260,9 +308,9 @@
         }
     }
 
-    private async Task FiltrarSugerencias()
+    private async Task FiltrarReseñas()
     {
-        await LoadSugerencias();
+        await LoadValoraciones();
     }
 
     private async Task LimpiarFiltros()
@@ -271,47 +319,51 @@
         fechaFin = null;
         filtroCampo = "Nombre";
         filtroValor = string.Empty;
-        await LoadSugerencias();
+        await LoadValoraciones();
     }
 
-    private void AbrirModalEditar(Sugerencia sugerencia)
+    private void AbrirModalEditar(Valoracion valoracion)
     {
-        sugerenciaSeleccionada = new Sugerencia
+        valoracionSeleccionada = new Valoracion
         {
-            Id = sugerencia.Id,
-            Nombre = sugerencia.Nombre,
-            Email = sugerencia.Email,
-            Mensaje = sugerencia.Mensaje,
-            FechaCreacion = sugerencia.FechaCreacion
+            Id = valoracion.Id,
+            Nombre = valoracion.Nombre,
+            Apellido = valoracion.Apellido,
+            CorreoElectronico = valoracion.CorreoElectronico,
+            Puntuacion = valoracion.Puntuacion,
+            Comentario = valoracion.Comentario,
+            FechaCreacion = valoracion.FechaCreacion
         };
         mostrarModalEditar = true;
     }
 
-    private void AbrirModalEliminar(Sugerencia sugerencia)
+    private void AbrirModalEliminar(Valoracion valoracion)
     {
-        sugerenciaSeleccionada = sugerencia;
+        valoracionSeleccionada = valoracion;
         mostrarModalEliminar = true;
     }
 
-    private async Task UpdateSugerencia()
+    private async Task UpdateValoracion()
     {
-        if (sugerenciaSeleccionada != null)
+        if (valoracionSeleccionada != null)
         {
             try
             {
-                var existingSugerencia = await DbContext.Sugerencias.FindAsync(sugerenciaSeleccionada.Id);
-                if (existingSugerencia != null)
+                var existingValoracion = await DbContext.Valoraciones.FindAsync(valoracionSeleccionada.Id);
+                if (existingValoracion != null)
                 {
-                    existingSugerencia.Nombre = sugerenciaSeleccionada.Nombre;
-                    existingSugerencia.Email = sugerenciaSeleccionada.Email;
-                    existingSugerencia.Mensaje = sugerenciaSeleccionada.Mensaje;
+                    existingValoracion.Nombre = valoracionSeleccionada.Nombre;
+                    existingValoracion.Apellido = valoracionSeleccionada.Apellido;
+                    existingValoracion.CorreoElectronico = valoracionSeleccionada.CorreoElectronico;
+                    existingValoracion.Puntuacion = valoracionSeleccionada.Puntuacion;
+                    existingValoracion.Comentario = valoracionSeleccionada.Comentario;
                     await DbContext.SaveChangesAsync();
-                    await LoadSugerencias();
+                    await LoadValoraciones();
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error al actualizar la sugerencia {SugerenciaId}", sugerenciaSeleccionada.Id);
+                Logger.LogError(ex, "Error al actualizar la valoración {ValoracionId}", valoracionSeleccionada.Id);
             }
             finally
             {
@@ -320,20 +372,20 @@
         }
     }
 
-    private async Task EliminarSugerencia()
+    private async Task EliminarValoracion()
     {
-        if (sugerenciaSeleccionada == null) return;
+        if (valoracionSeleccionada == null) return;
 
         try
         {
-            DbContext.Sugerencias.Remove(sugerenciaSeleccionada);
+            DbContext.Valoraciones.Remove(valoracionSeleccionada);
             await DbContext.SaveChangesAsync();
-            Logger.LogInformation("Sugerencia {SugerenciaId} eliminada exitosamente.", sugerenciaSeleccionada.Id);
-            await LoadSugerencias();
+            Logger.LogInformation("Valoración {ValoracionId} eliminada exitosamente.", valoracionSeleccionada.Id);
+            await LoadValoraciones();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error al eliminar la sugerencia {SugerenciaId}", sugerenciaSeleccionada.Id);
+            Logger.LogError(ex, "Error al eliminar la valoración {ValoracionId}", valoracionSeleccionada.Id);
         }
         finally
         {
@@ -345,6 +397,6 @@
     {
         mostrarModalEditar = false;
         mostrarModalEliminar = false;
-        sugerenciaSeleccionada = null;
+        valoracionSeleccionada = null;
     }
 }

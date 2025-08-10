@@ -14,6 +14,7 @@
 @using Proyecto_Final.Models.Pedidos
 @using Proyecto_Final.Models.Producto
 @using Proyecto_Final.Services
+
 @inject ICarritoService CarritoService
 @inject NavigationManager NavManager
 @inject ILogger<FinalizarCompra> Logger
@@ -34,18 +35,6 @@
                     <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/MasterCard_Logo.svg" alt="Mastercard" class="h-6 object-contain" />
                     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/American_Express_logo_%282018%29.svg/1200px-American_Express_logo_%282018%29.svg.png" alt="American Express" class="h-6 object-contain" />
                 </div>
-
-                @* Mensaje para usuarios no autenticados *@
-                @if (!isLoggedIn)
-                {
-                    <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-lg" role="alert">
-                        <p class="font-bold">¡Casi terminas!</p>
-                        <p>
-                            Para completar tu compra, por favor <a href="/Identity/Account/Login?returnUrl=/checkout" class="font-bold underline text-yellow-800 hover:text-yellow-900">inicia sesión</a>.
-                            Tus productos seguirán en el carrito.
-                        </p>
-                    </div>
-                }
 
                 @if (isLoading)
                 {
@@ -77,6 +66,18 @@
 
                     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
                         <DataAnnotationsValidator />
+
+                        @* Nuevo: Sección de Contacto para usuarios no logueados *@
+                        @if (!isLoggedIn)
+                        {
+                            <h2 class="text-2xl font-bold mb-4 text-gray-800">Contacto</h2>
+                            <div class="mb-6">
+                                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+                                <InputText id="email" @bind-Value="Input.Email" class="w-full px-4 py-3 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" placeholder="correo@ejemplo.com" />
+                                <ValidationMessage For="@(() => Input.Email)" class="text-red-500 text-sm mt-1" />
+                            </div>
+                        }
+
                         <h2 class="text-2xl font-bold mb-4 text-gray-800">Tarjeta de crédito</h2>
                         <div class="grid grid-cols-1 gap-6 mb-8">
                             <div>
@@ -174,8 +175,7 @@
 
                         <div class="mt-8">
                             <button type="submit"
-                                    class="w-full bg-black hover:bg-gray-800 text-white font-bold py-4 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    disabled="@(!isLoggedIn)">
+                                    class="w-full bg-black hover:bg-gray-800 text-white font-bold py-4 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                                 Pagar ahora
                             </button>
                         </div>
@@ -279,14 +279,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Obtener el estado de autenticación del usuario
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         isLoggedIn = user.Identity?.IsAuthenticated ?? false;
 
-        // Cargar los identificadores del carrito
         await LoadCartIdentifiers(user);
-        // Cargar los items del carrito, ya sea para un usuario logueado o anónimo
+
+        // Ya no es necesario unir carritos aquí, ya que los no logueados pueden comprar
         await LoadCartAsync();
 
         if (isLoggedIn && !string.IsNullOrEmpty(usuarioId))
@@ -307,6 +306,11 @@
             usuarioId = null;
             var httpContext = HttpContextAccessor.HttpContext;
             sessionId = httpContext?.Session.Id;
+            if (string.IsNullOrEmpty(sessionId) && httpContext != null)
+            {
+                httpContext.Session.SetString("SessionId", Guid.NewGuid().ToString());
+                sessionId = httpContext.Session.Id;
+            }
         }
     }
 
@@ -340,8 +344,8 @@
         if (string.IsNullOrEmpty(usuarioId)) return;
 
         defaultAddress = await DbContext.DireccionesEnvio
-          .Where(d => d.UsuarioId == usuarioId && d.EsPrincipal)
-          .FirstOrDefaultAsync();
+            .Where(d => d.UsuarioId == usuarioId && d.EsPrincipal)
+            .FirstOrDefaultAsync();
 
         currentUser = await UserManager.FindByIdAsync(usuarioId);
     }
@@ -373,10 +377,10 @@
 
     private async Task HandleValidSubmit()
     {
-        // Validar si el usuario está logueado antes de procesar el pago
-        if (!isLoggedIn)
+        // Nueva validación: si no está logueado, necesita un correo electrónico.
+        if (!isLoggedIn && string.IsNullOrEmpty(Input.Email))
         {
-            errorMessage = "Debes iniciar sesión para poder pagar ahora.";
+            errorMessage = "Debe proporcionar un correo electrónico para completar la compra como invitado.";
             return;
         }
 
@@ -391,12 +395,11 @@
                 return;
             }
 
-            // Simulación de un pago exitoso
             await Task.Delay(1500);
 
+            // Se crea el pedido con la información del formulario
             await FinalizarPedidoAsync();
 
-            // Llama al servicio de carrito para limpiar el carrito, ya sea por userId
             await CarritoService.LimpiarCarritoAsync(usuarioId, sessionId);
 
             pagoExitoso = true;
@@ -415,14 +418,10 @@
 
     private async Task FinalizarPedidoAsync()
     {
-        if (!isLoggedIn)
-        {
-            throw new InvalidOperationException("Solo usuarios autenticados pueden crear pedidos.");
-        }
-
         var nuevoPedido = new Pedido
         {
             UsuarioId = usuarioId,
+            EmailInvitado = isLoggedIn ? null : Input.Email, // Guarda el correo si es un invitado
             FechaPedido = DateTime.UtcNow,
             Total = subtotal,
             Estado = "Procesando",
@@ -440,8 +439,8 @@
         foreach (var item in carritoItems!)
         {
             var productoVariacion = await DbContext.ProductoVariaciones
-              .Include(pv => pv.Producto)
-              .FirstOrDefaultAsync(pv => pv.Id == item.ProductoVariacionId);
+                .Include(pv => pv.Producto)
+                .FirstOrDefaultAsync(pv => pv.Id == item.ProductoVariacionId);
 
             if (productoVariacion == null || productoVariacion.Stock < item.Cantidad)
             {
@@ -469,6 +468,10 @@
     // Modelo de datos para el formulario de pago
     private class InputModel
     {
+        [Required(ErrorMessage = "El Correo es obligatorio.")]
+        [EmailAddress(ErrorMessage = "El formato del correo no es válido.")]
+        public string? Email { get; set; }
+
         [Required(ErrorMessage = "El número de tarjeta es obligatorio.")]
         [StringLength(19, MinimumLength = 16, ErrorMessage = "Número de tarjeta inválido.")]
         public string NumeroTarjeta { get; set; } = string.Empty;
