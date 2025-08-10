@@ -22,14 +22,14 @@ namespace Proyecto_Final.Services
         {
             if (string.IsNullOrEmpty(userId) && string.IsNullOrEmpty(sessionId))
             {
-                throw new ArgumentNullException("Se requiere un userId o un sessionId para obtener el carrito.");
+                throw new ArgumentException("Se requiere un userId o un sessionId válido para obtener el carrito.");
             }
 
             var carrito = await _context.Carritos
-                .Include(c => c.Items)
-                .ThenInclude(ci => ci.ProductoVariacion)
-                .ThenInclude(pv => pv.Producto)
-                .FirstOrDefaultAsync(c => c.UsuarioId == userId || c.SessionId == sessionId);
+              .Include(c => c.Items)
+              .ThenInclude(ci => ci.ProductoVariacion)
+              .ThenInclude(pv => pv.Producto)
+              .FirstOrDefaultAsync(c => c.UsuarioId == userId || (string.IsNullOrEmpty(userId) && c.SessionId == sessionId));
 
             if (carrito == null)
             {
@@ -54,14 +54,19 @@ namespace Proyecto_Final.Services
 
         public async Task AgregarOActualizarItemAsync(string? userId, string? sessionId, int productoVariacionId, int cantidad)
         {
+            if (cantidad <= 0)
+            {
+                throw new ArgumentException("La cantidad debe ser mayor que cero.");
+            }
+
             var carrito = await GetCarritoAsync(userId, sessionId);
             var carritoItem = carrito.Items.FirstOrDefault(ci => ci.ProductoVariacionId == productoVariacionId);
 
             if (carritoItem == null)
             {
                 var productoVariacion = await _context.ProductoVariaciones
-                    .Include(pv => pv.Producto)
-                    .FirstOrDefaultAsync(pv => pv.Id == productoVariacionId);
+                  .Include(pv => pv.Producto)
+                  .FirstOrDefaultAsync(pv => pv.Id == productoVariacionId);
 
                 if (productoVariacion == null)
                 {
@@ -87,6 +92,11 @@ namespace Proyecto_Final.Services
 
         public async Task ActualizarCantidadAsync(int itemId, int newQuantity, string? userId, string? sessionId)
         {
+            if (newQuantity <= 0)
+            {
+                throw new ArgumentException("La nueva cantidad debe ser mayor que cero.");
+            }
+
             var carrito = await GetCarritoAsync(userId, sessionId);
             var item = carrito.Items.FirstOrDefault(i => i.Id == itemId);
             if (item != null)
@@ -118,7 +128,56 @@ namespace Proyecto_Final.Services
         public async Task LimpiarCarritoAsync(string? userId, string? sessionId)
         {
             var carrito = await GetCarritoAsync(userId, sessionId);
-            _context.CarritoItems.RemoveRange(carrito.Items);
+            if (carrito.Items.Any())
+            {
+                _context.CarritoItems.RemoveRange(carrito.Items);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task UnirCarritosAsync(string? loggedInUserId, string? sessionId)
+        {
+            if (string.IsNullOrEmpty(loggedInUserId) || string.IsNullOrEmpty(sessionId))
+            {
+                return;
+            }
+
+            var carritos = await _context.Carritos
+                .Include(c => c.Items)
+                .Where(c => c.UsuarioId == loggedInUserId || c.SessionId == sessionId)
+                .ToListAsync();
+
+            var usuarioCarrito = carritos.FirstOrDefault(c => c.UsuarioId == loggedInUserId);
+            var sessionCarrito = carritos.FirstOrDefault(c => c.SessionId == sessionId);
+
+            if (sessionCarrito == null || !sessionCarrito.Items.Any())
+            {
+                return;
+            }
+
+            if (usuarioCarrito == null)
+            {
+                sessionCarrito.UsuarioId = loggedInUserId;
+                sessionCarrito.SessionId = null;
+            }
+            else
+            {
+                foreach (var sessionItem in sessionCarrito.Items)
+                {
+                    var existingItem = usuarioCarrito.Items.FirstOrDefault(ui => ui.ProductoVariacionId == sessionItem.ProductoVariacionId);
+
+                    if (existingItem != null)
+                    {
+                        existingItem.Cantidad += sessionItem.Cantidad;
+                    }
+                    else
+                    {
+                        sessionItem.CarritoId = usuarioCarrito.Id;
+                        usuarioCarrito.Items.Add(sessionItem);
+                    }
+                }
+                _context.Carritos.Remove(sessionCarrito);
+            }
             await _context.SaveChangesAsync();
         }
     }
