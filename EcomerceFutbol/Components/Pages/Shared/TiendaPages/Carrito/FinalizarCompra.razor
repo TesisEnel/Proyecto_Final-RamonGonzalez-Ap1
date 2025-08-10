@@ -66,8 +66,6 @@
 
                     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
                         <DataAnnotationsValidator />
-
-                        @* Nuevo: Sección de Contacto para usuarios no logueados *@
                         @if (!isLoggedIn)
                         {
                             <h2 class="text-2xl font-bold mb-4 text-gray-800">Contacto</h2>
@@ -284,8 +282,6 @@
         isLoggedIn = user.Identity?.IsAuthenticated ?? false;
 
         await LoadCartIdentifiers(user);
-
-        // Ya no es necesario unir carritos aquí, ya que los no logueados pueden comprar
         await LoadCartAsync();
 
         if (isLoggedIn && !string.IsNullOrEmpty(usuarioId))
@@ -377,7 +373,6 @@
 
     private async Task HandleValidSubmit()
     {
-        // Nueva validación: si no está logueado, necesita un correo electrónico.
         if (!isLoggedIn && string.IsNullOrEmpty(Input.Email))
         {
             errorMessage = "Debe proporcionar un correo electrónico para completar la compra como invitado.";
@@ -396,8 +391,6 @@
             }
 
             await Task.Delay(1500);
-
-            // Se crea el pedido con la información del formulario
             await FinalizarPedidoAsync();
 
             await CarritoService.LimpiarCarritoAsync(usuarioId, sessionId);
@@ -421,7 +414,7 @@
         var nuevoPedido = new Pedido
         {
             UsuarioId = usuarioId,
-            EmailInvitado = isLoggedIn ? null : Input.Email, // Guarda el correo si es un invitado
+            EmailInvitado = isLoggedIn ? null : Input.Email, 
             FechaPedido = DateTime.UtcNow,
             Total = subtotal,
             Estado = "Procesando",
@@ -465,7 +458,6 @@
         Logger.LogInformation($"Pedido {nuevoPedido.Id} creado exitosamente.");
     }
 
-    // Modelo de datos para el formulario de pago
     private class InputModel
     {
         [Required(ErrorMessage = "El Correo es obligatorio.")]
