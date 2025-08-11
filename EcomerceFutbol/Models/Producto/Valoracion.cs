@@ -10,9 +10,11 @@ namespace Proyecto_Final.Models.Producto
         public int ProductoId { get; set; }
 
         [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "El nombre solo puede contener letras y espacios.")]
         public string? Nombre { get; set; }
 
         [Required(ErrorMessage = "El apellido es obligatorio.")]
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "El apellido solo puede contener letras y espacios.")]
         public string? Apellido { get; set; }
 
         [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
