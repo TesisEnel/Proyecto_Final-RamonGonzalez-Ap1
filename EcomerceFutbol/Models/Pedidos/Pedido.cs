@@ -10,8 +10,8 @@ namespace Proyecto_Final.Models.Pedidos
         [Key]
         public int Id { get; set; }
 
-        [Required]
-        public string UsuarioId { get; set; }
+        public string? UsuarioId { get; set; } 
+        public string? EmailInvitado { get; set; } 
 
         [ForeignKey("UsuarioId")]
         public virtual ApplicationUser? Usuario { get; set; }

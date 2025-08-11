@@ -5,7 +5,7 @@
 namespace Proyecto_Final.Migrations
 {
     /// <inheritdoc />
-    public partial class FinalModelSync : Migration
+    public partial class AddSugerenciaTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

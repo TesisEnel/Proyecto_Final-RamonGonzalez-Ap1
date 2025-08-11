@@ -5,7 +5,7 @@
 namespace Proyecto_Final.Migrations
 {
     /// <inheritdoc />
-    public partial class NombreDeTuNuevaMigracion : Migration
+    public partial class AddCookieIdToCarrito : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

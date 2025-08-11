@@ -5,7 +5,7 @@
 namespace Proyecto_Final.Migrations
 {
     /// <inheritdoc />
-    public partial class ActualizarModelosYRoles : Migration
+    public partial class AddEmailInvitadoAndFixUsuarioId : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

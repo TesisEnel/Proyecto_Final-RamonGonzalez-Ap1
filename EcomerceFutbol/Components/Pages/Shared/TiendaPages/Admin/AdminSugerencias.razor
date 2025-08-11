@@ -1,0 +1,350 @@
+﻿@page "/adminsugerencias"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Proyecto_Final.Data
+@using Proyecto_Final.Models
+@inject ApplicationDbContext DbContext
+@inject ILogger<AdminSugerencias> Logger
+@inject NavigationManager NavManager
+
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Administración de Sugerencias - Golazo Store</PageTitle>
+
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    <div class="bg-white p-8 rounded-xl shadow-md border border-gray-200">
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">Administración de Sugerencias</h1>
+
+        <div class="mb-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
+            <div>
+                <label for="fecha-inicio" class="block text-sm font-medium text-gray-700">Desde</label>
+                <input type="date" id="fecha-inicio" @bind="fechaInicio" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="fecha-fin" class="block text-sm font-medium text-gray-700">Hasta</label>
+                <input type="date" id="fecha-fin" @bind="fechaFin" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="filtro-campo" class="block text-sm font-medium text-gray-700">Filtrar por</label>
+                <InputSelect id="filtro-campo" @bind-Value="filtroCampo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm">
+                    <option value="Nombre">Nombre</option>
+                    <option value="Email">Email</option>
+                    <option value="Mensaje">Mensaje</option>
+                </InputSelect>
+            </div>
+            <div>
+                <label for="filtro-valor" class="block text-sm font-medium text-gray-700">Buscar</label>
+                <input type="text" id="filtro-valor" @bind="filtroValor" @bind:event="oninput" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm" placeholder="Escribe para buscar...">
+            </div>
+            <div class="col-span-1 md:col-span-3 lg:col-span-4 flex space-x-2 mt-4">
+                <button @onclick="FiltrarSugerencias" class="w-full md:w-auto px-4 py-2 bg-yellow-500 text-white font-semibold rounded-md shadow hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">
+                    Filtrar
+                </button>
+                <button @onclick="LimpiarFiltros" class="w-full md:w-auto px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md shadow hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                    Limpiar
+                </button>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="flex flex-col items-center justify-center py-20">
+                <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-500"></div>
+                <p class="mt-4 text-gray-600 font-medium">Cargando sugerencias...</p>
+            </div>
+        }
+        else if (sugerencias == null || !sugerencias.Any())
+        {
+            <div class="text-center text-gray-500 py-10">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No hay sugerencias para mostrar</h3>
+                <p class="mt-1 text-sm text-gray-500">Actualmente no hay sugerencias que coincidan con los filtros aplicados.</p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mensaje</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th scope="col" class="relative px-6 py-3"><span class="sr-only">Acciones</span></th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach (var sugerencia in sugerencias)
+                        {
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    @sugerencia.Nombre
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @sugerencia.Email
+                                </td>
+                                <td class="px-6 py-4 whitespace-normal text-sm text-gray-900 max-w-xs">
+                                    @sugerencia.Mensaje
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @sugerencia.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                    <button @onclick="() => AbrirModalEditar(sugerencia)" class="text-yellow-600 hover:text-yellow-800">Editar</button>
+                                    <button @onclick="() => AbrirModalEliminar(sugerencia)" class="text-red-600 hover:text-red-900">Eliminar</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@if (mostrarModalEditar)
+{
+    <div class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                Editar Sugerencia
+                            </h3>
+                            <div class="mt-4">
+                                @if (sugerenciaSeleccionada != null)
+                                {
+                                    <div class="mb-4">
+                                        <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre</label>
+                                        <input type="text" id="nombre" @bind="sugerenciaSeleccionada.Nombre" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm" />
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                                        <input type="email" id="email" @bind="sugerenciaSeleccionada.Email" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm" />
+                                    </div>
+                                    <div>
+                                        <label for="mensaje" class="block text-sm font-medium text-gray-700">Mensaje</label>
+                                        <textarea id="mensaje" @bind="sugerenciaSeleccionada.Mensaje" rows="5" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"></textarea>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @onclick="UpdateSugerencia" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Guardar Cambios
+                    </button>
+                    <button type="button" @onclick="CerrarModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEliminar)
+{
+    <div class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                Eliminar Sugerencia
+                            </h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500">
+                                    ¿Estás seguro de que quieres eliminar esta sugerencia de forma permanente? Esta acción no se puede deshacer.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @onclick="EliminarSugerencia" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Eliminar
+                    </button>
+                    <button type="button" @onclick="CerrarModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Sugerencia>? sugerencias;
+    private bool isLoading = true;
+    private Sugerencia? sugerenciaSeleccionada;
+    private bool mostrarModalEditar = false;
+    private bool mostrarModalEliminar = false;
+
+    private DateTime? fechaInicio;
+    private DateTime? fechaFin;
+    private string filtroCampo = "Nombre";
+    private string filtroValor = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSugerencias();
+    }
+
+    private async Task LoadSugerencias()
+    {
+        isLoading = true;
+        try
+        {
+            var query = DbContext.Sugerencias.AsQueryable();
+
+            if (fechaInicio.HasValue)
+            {
+                query = query.Where(s => s.FechaCreacion >= fechaInicio.Value.Date);
+            }
+            if (fechaFin.HasValue)
+            {
+                query = query.Where(s => s.FechaCreacion < fechaFin.Value.Date.AddDays(1));
+            }
+            if (!string.IsNullOrEmpty(filtroValor))
+            {
+                switch (filtroCampo)
+                {
+                    case "Nombre":
+                        query = query.Where(s => s.Nombre != null && s.Nombre.Contains(filtroValor));
+                        break;
+                    case "Email":
+                        query = query.Where(s => s.Email != null && s.Email.Contains(filtroValor));
+                        break;
+                    case "Mensaje":
+                        query = query.Where(s => s.Mensaje.Contains(filtroValor));
+                        break;
+                }
+            }
+
+            sugerencias = await query
+                .OrderByDescending(s => s.FechaCreacion)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar las sugerencias.");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task FiltrarSugerencias()
+    {
+        await LoadSugerencias();
+    }
+
+    private async Task LimpiarFiltros()
+    {
+        fechaInicio = null;
+        fechaFin = null;
+        filtroCampo = "Nombre";
+        filtroValor = string.Empty;
+        await LoadSugerencias();
+    }
+
+    private void AbrirModalEditar(Sugerencia sugerencia)
+    {
+        sugerenciaSeleccionada = new Sugerencia
+        {
+            Id = sugerencia.Id,
+            Nombre = sugerencia.Nombre,
+            Email = sugerencia.Email,
+            Mensaje = sugerencia.Mensaje,
+            FechaCreacion = sugerencia.FechaCreacion
+        };
+        mostrarModalEditar = true;
+    }
+
+    private void AbrirModalEliminar(Sugerencia sugerencia)
+    {
+        sugerenciaSeleccionada = sugerencia;
+        mostrarModalEliminar = true;
+    }
+
+    private async Task UpdateSugerencia()
+    {
+        if (sugerenciaSeleccionada != null)
+        {
+            try
+            {
+                var existingSugerencia = await DbContext.Sugerencias.FindAsync(sugerenciaSeleccionada.Id);
+                if (existingSugerencia != null)
+                {
+                    existingSugerencia.Nombre = sugerenciaSeleccionada.Nombre;
+                    existingSugerencia.Email = sugerenciaSeleccionada.Email;
+                    existingSugerencia.Mensaje = sugerenciaSeleccionada.Mensaje;
+                    await DbContext.SaveChangesAsync();
+                    await LoadSugerencias();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error al actualizar la sugerencia {SugerenciaId}", sugerenciaSeleccionada.Id);
+            }
+            finally
+            {
+                CerrarModal();
+            }
+        }
+    }
+
+    private async Task EliminarSugerencia()
+    {
+        if (sugerenciaSeleccionada == null) return;
+
+        try
+        {
+            DbContext.Sugerencias.Remove(sugerenciaSeleccionada);
+            await DbContext.SaveChangesAsync();
+            Logger.LogInformation("Sugerencia {SugerenciaId} eliminada exitosamente.", sugerenciaSeleccionada.Id);
+            await LoadSugerencias();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al eliminar la sugerencia {SugerenciaId}", sugerenciaSeleccionada.Id);
+        }
+        finally
+        {
+            CerrarModal();
+        }
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModalEditar = false;
+        mostrarModalEliminar = false;
+        sugerenciaSeleccionada = null;
+    }
+}

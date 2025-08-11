@@ -35,10 +35,8 @@ namespace Proyecto_Final.Services
                 {
                     cartItems.Add(new CarritoItem
                     {
-                        ProductoId = productoVariacion.ProductoId,
                         ProductoVariacionId = productoVariacionId,
                         Cantidad = cantidad,
-                        Producto = productoVariacion.Producto,
                         ProductoVariacion = productoVariacion
                     });
                 }
@@ -51,12 +49,11 @@ namespace Proyecto_Final.Services
             var cartItems = GetAnonymousCartItemsFromSession();
             foreach (var item in cartItems)
             {
-                if (item.Producto == null || item.ProductoVariacion == null)
+                if (item.ProductoVariacion == null)
                 {
                     var productoVariacion = await _productoService.ObtenerProductoVariacionPorIdAsync(item.ProductoVariacionId);
                     if (productoVariacion != null)
                     {
-                        item.Producto = productoVariacion.Producto;
                         item.ProductoVariacion = productoVariacion;
                     }
                 }
