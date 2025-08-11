@@ -6,43 +6,44 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace Proyecto_Final.Services
 {
     public class CarritoService : ICarritoService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public CarritoService(ApplicationDbContext context)
+        public CarritoService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         private async Task<Carrito> GetCarritoAsync(string? userId, string? sessionId)
         {
-            if (string.IsNullOrEmpty(userId) && string.IsNullOrEmpty(sessionId))
-            {
-                throw new ArgumentException("Se requiere un userId o un sessionId válido para obtener el carrito.");
-            }
-
+            // Busca un carrito por userId o por sessionId.
             var carrito = await _context.Carritos
-              .Include(c => c.Items)
-              .ThenInclude(ci => ci.ProductoVariacion)
-              .ThenInclude(pv => pv.Producto)
-              .FirstOrDefaultAsync(c => c.UsuarioId == userId || (string.IsNullOrEmpty(userId) && c.SessionId == sessionId));
+                .Include(c => c.Items)
+                .ThenInclude(ci => ci.ProductoVariacion)
+                .ThenInclude(pv => pv.Producto)
+                .FirstOrDefaultAsync(c => c.UsuarioId == userId || (!string.IsNullOrEmpty(sessionId) && c.SessionId == sessionId));
 
             if (carrito == null)
             {
+                // Si no se encuentra un carrito, crea uno nuevo.
+                // Elige el userId o el sessionId en función de cuál está presente.
                 carrito = new Carrito
                 {
                     UsuarioId = userId,
-                    SessionId = sessionId,
+                    SessionId = string.IsNullOrEmpty(userId) ? sessionId : null,
                     Items = new List<CarritoItem>()
                 };
                 _context.Carritos.Add(carrito);
                 await _context.SaveChangesAsync();
             }
-
             return carrito;
         }
 
@@ -65,8 +66,8 @@ namespace Proyecto_Final.Services
             if (carritoItem == null)
             {
                 var productoVariacion = await _context.ProductoVariaciones
-                  .Include(pv => pv.Producto)
-                  .FirstOrDefaultAsync(pv => pv.Id == productoVariacionId);
+                    .Include(pv => pv.Producto)
+                    .FirstOrDefaultAsync(pv => pv.Id == productoVariacionId);
 
                 if (productoVariacion == null)
                 {
@@ -86,7 +87,6 @@ namespace Proyecto_Final.Services
             {
                 carritoItem.Cantidad += cantidad;
             }
-
             await _context.SaveChangesAsync();
         }
 
@@ -135,20 +135,26 @@ namespace Proyecto_Final.Services
             }
         }
 
-        public async Task UnirCarritosAsync(string? loggedInUserId, string? sessionId)
+        public async Task UnirCarritosAsync(string? loggedInUserId)
         {
-            if (string.IsNullOrEmpty(loggedInUserId) || string.IsNullOrEmpty(sessionId))
+            if (string.IsNullOrEmpty(loggedInUserId))
+            {
+                return;
+            }
+
+            string? currentSessionId = _httpContextAccessor.HttpContext?.Session.Id;
+            if (string.IsNullOrEmpty(currentSessionId))
             {
                 return;
             }
 
             var carritos = await _context.Carritos
                 .Include(c => c.Items)
-                .Where(c => c.UsuarioId == loggedInUserId || c.SessionId == sessionId)
+                .Where(c => c.UsuarioId == loggedInUserId || c.SessionId == currentSessionId)
                 .ToListAsync();
 
             var usuarioCarrito = carritos.FirstOrDefault(c => c.UsuarioId == loggedInUserId);
-            var sessionCarrito = carritos.FirstOrDefault(c => c.SessionId == sessionId);
+            var sessionCarrito = carritos.FirstOrDefault(c => c.SessionId == currentSessionId);
 
             if (sessionCarrito == null || !sessionCarrito.Items.Any())
             {
@@ -157,11 +163,13 @@ namespace Proyecto_Final.Services
 
             if (usuarioCarrito == null)
             {
+                // Si el usuario no tiene carrito, asigna el de la sesión
                 sessionCarrito.UsuarioId = loggedInUserId;
                 sessionCarrito.SessionId = null;
             }
             else
             {
+                // Si el usuario tiene carrito, fusiona los ítems
                 foreach (var sessionItem in sessionCarrito.Items)
                 {
                     var existingItem = usuarioCarrito.Items.FirstOrDefault(ui => ui.ProductoVariacionId == sessionItem.ProductoVariacionId);
@@ -172,10 +180,12 @@ namespace Proyecto_Final.Services
                     }
                     else
                     {
+                        // Mueve el ítem del carrito de sesión al de usuario
                         sessionItem.CarritoId = usuarioCarrito.Id;
                         usuarioCarrito.Items.Add(sessionItem);
                     }
                 }
+                // Elimina el carrito de sesión
                 _context.Carritos.Remove(sessionCarrito);
             }
             await _context.SaveChangesAsync();
