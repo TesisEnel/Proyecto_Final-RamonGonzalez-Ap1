@@ -121,7 +121,7 @@
     private List<CarritoItem> carritoItems = new();
     private bool isLoggedIn;
     private string? usuarioId;
-    private string? sessionId; // Nueva propiedad para almacenar el sessionId
+    private string? sessionId;
 
     private decimal total => carritoItems?.Sum(item => item.Cantidad * item.ProductoVariacion.Producto.Precio * (1 - item.ProductoVariacion.Producto.Descuento)) ?? 0;
 
@@ -148,9 +148,13 @@
         else
         {
             usuarioId = null;
-            // Obtener el sessionId si el usuario no está autenticado
             var httpContext = HttpContextAccessor.HttpContext;
             sessionId = httpContext?.Session.Id;
+            if (string.IsNullOrEmpty(sessionId) && httpContext != null)
+            {
+                httpContext.Session.SetString("SessionId", Guid.NewGuid().ToString());
+                sessionId = httpContext.Session.Id;
+            }
         }
     }
 
@@ -158,7 +162,6 @@
     {
         try
         {
-            // Llama al servicio pasando ambos parámetros
             carritoItems = await CarritoService.ObtenerItemsDelCarritoAsync(usuarioId, sessionId);
             StateHasChanged();
         }
@@ -179,7 +182,6 @@
     {
         try
         {
-            // Pasa ambos parámetros al servicio
             await CarritoService.EliminarDelCarritoAsync(item.Id, usuarioId, sessionId);
 
             await LoadCartItems();
@@ -205,15 +207,7 @@
         }
 
         await CloseModal();
-
-        if (!isLoggedIn)
-        {
-            NavigationManager.NavigateTo($"/Account/Login?returnUrl={Uri.EscapeDataString("/checkout")}");
-        }
-        else
-        {
-            NavigationManager.NavigateTo("/checkout");
-        }
+        NavigationManager.NavigateTo("/checkout");
     }
 
     private void AddNoteToOrder()
