@@ -12,6 +12,7 @@
 
 <PageTitle>Inicio - Golazo Store</PageTitle>
 
+<!-- Banner Principal -->
 <section class="relative w-full h-screen overflow-hidden flex items-center justify-center">
     <div class="relative w-full h-full">
         @for (int i = 0; i < bannerImages.Count; i++)
@@ -67,6 +68,7 @@
     </button>
 </section>
 
+<!-- Sección de Características -->
 <section class="py-20 bg-white">
     <div class="container mx-auto px-4">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -97,6 +99,7 @@
     </div>
 </section>
 
+<!-- Sección de Camisetas -->
 <section class="py-16 bg-gray-50">
     <div class="container mx-auto px-4">
         <div class="text-center mb-12">
@@ -157,6 +160,7 @@
     </div>
 </section>
 
+<!-- Sección de Botines -->
 <section class="py-16 bg-white">
     <div class="container mx-auto px-4">
         <div class="text-center mb-12">
@@ -217,6 +221,7 @@
     </div>
 </section>
 
+<!-- Sección de Guantes -->
 <section class="py-16 bg-gray-50">
     <div class="container mx-auto px-4">
         <div class="text-center mb-12">
@@ -277,6 +282,7 @@
     </div>
 </section>
 
+<!-- Sección de Contacto -->
 <section class="py-16 bg-white">
     <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto">
@@ -314,7 +320,7 @@
                                 <div>
                                     <label for="nombre" class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
                                     <InputText @bind-Value="sugerenciaForm.Nombre"
-                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300"
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 text-gray-900"
                                                placeholder="Tu nombre" />
                                     <ValidationMessage For="@(() => sugerenciaForm.Nombre)" class="text-red-500 text-sm mt-1" />
                                 </div>
@@ -322,7 +328,7 @@
                                     <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Correo electrónico</label>
                                     <InputText @bind-Value="sugerenciaForm.Email"
                                                type="email"
-                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300"
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 text-gray-900"
                                                placeholder="tu@email.com" />
                                     <ValidationMessage For="@(() => sugerenciaForm.Email)" class="text-red-500 text-sm mt-1" />
                                 </div>
@@ -332,7 +338,7 @@
                                 <label for="mensaje" class="block text-sm font-medium text-gray-700 mb-2">Mensaje</label>
                                 <InputTextArea @bind-Value="sugerenciaForm.Mensaje"
                                                rows="4"
-                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 resize-none"
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 resize-none text-gray-900"
                                                placeholder="Describe la camiseta que buscas: equipo, temporada, talla, etc." />
                                 <ValidationMessage For="@(() => sugerenciaForm.Mensaje)" class="text-red-500 text-sm mt-1" />
                             </div>
@@ -369,28 +375,57 @@
     </div>
 </section>
 
+<!-- Sección de Marcas -->
 <section class="py-16 bg-gray-100">
     <div class="container mx-auto px-4">
-        <h2 class="section-title">NUESTRAS MARCAS</h2>
+        <h2 class="text-3xl font-bold text-center mb-12">NUESTRAS MARCAS</h2>
         <div class="flex flex-wrap justify-center items-center gap-8 md:gap-16">
-            <img src="imagenes/marcas/Nike.png" alt="Nike" class="brand-logo">
-            <img src="imagenes/marcas/Adidas.png" alt="Adidas" class="brand-logo">
-            <img src="imagenes/marcas/Puma.png" alt="Puma" class="brand-logo">
-            <img src="imagenes/marcas/Under Armour.png" alt="Under Armour" class="brand-logo">
-            <img src="imagenes/marcas/wilson.png" alt="Wilson" class="brand-logo">
+            <img src="imagenes/marcas/Nike.png" alt="Nike" class="h-16 md:h-20 object-contain">
+            <img src="imagenes/marcas/Adidas.png" alt="Adidas" class="h-16 md:h-20 object-contain">
+            <img src="imagenes/marcas/Puma.png" alt="Puma" class="h-16 md:h-20 object-contain">
+            <img src="imagenes/marcas/Under Armour.png" alt="Under Armour" class="h-16 md:h-20 object-contain">
+            <img src="imagenes/marcas/wilson.png" alt="Wilson" class="h-16 md:h-20 object-contain">
         </div>
     </div>
 </section>
 
-<section class="py-16 newsletter">
+<!-- Sección del Newsletter -->
+<section class="py-16 bg-[#1A1A1A]">
     <div class="container mx-auto px-4 text-center">
-        <h2 class="text-3xl font-bold mb-4">SUSCRÍBETE A NUESTRO NEWSLETTER</h2>
+        <h2 class="text-3xl font-bold text-white mb-4">SUSCRÍBETE A NUESTRO NEWSLETTER</h2>
         <p class="text-gray-300 mb-8 max-w-2xl mx-auto">Recibe las últimas novedades, ofertas exclusivas y descuentos especiales directamente en tu correo.</p>
-        <div class="max-w-md mx-auto flex">
-            <input type="email" placeholder="Tu correo electrónico" class="newsletter-input">
-            <button class="newsletter-button">
-                Suscribirse
-            </button>
+        <div class="max-w-md mx-auto">
+            <EditForm Model="@newsletterForm" OnValidSubmit="@HandleNewsletterSubmit">
+                <DataAnnotationsValidator />
+                <div class="flex flex-col md:flex-row gap-4 md:gap-0">
+                    <InputText @bind-Value="newsletterForm.Email"
+                               type="email"
+                               placeholder="Tu correo electrónico"
+                               class="flex-grow px-4 py-3 rounded-l-lg md:rounded-r-none focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-900 bg-white" />
+                    <button type="submit"
+                            disabled="@isSubmittingNewsletter"
+                            class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-r-lg md:rounded-l-none transition-all duration-300">
+                        @if (isSubmittingNewsletter)
+                        {
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            <span>Enviando...</span>
+                        }
+                        else
+                        {
+                            <span>Suscribirse</span>
+                        }
+                    </button>
+                </div>
+                <div class="text-left mt-2">
+                    <ValidationMessage For="@(() => newsletterForm.Email)" class="text-yellow-400 text-sm" />
+                </div>
+                @if (!string.IsNullOrEmpty(newsletterMessage))
+                {
+                    <div class="mt-4 p-4 rounded-lg @(newsletterSuccess ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")">
+                        <span>@newsletterMessage</span>
+                    </div>
+                }
+            </EditForm>
         </div>
     </div>
 </section>
@@ -412,10 +447,15 @@
     private bool isLoadingGuantes = true;
     private bool isLoadingAccesorios = true;
 
-    private Sugerencia sugerenciaForm = new();
+    private Models.Sugerencia sugerenciaForm = new();
     private bool isSubmitting = false;
     private string submitMessage = "";
     private bool submitSuccess = false;
+
+    private Models.NewsletterSubscription newsletterForm = new();
+    private bool isSubmittingNewsletter = false;
+    private string newsletterMessage = "";
+    private bool newsletterSuccess = false;
 
     public class BannerImage
     {
@@ -487,7 +527,6 @@
                 ButtonUrl = "/novedades"
             }
         };
-
         StartBannerAutoPlay();
     }
 
@@ -521,7 +560,6 @@
         }
         catch (Exception ex)
         {
-            // Manejo de errores
             isLoadingCamisetas = false;
             isLoadingBotines = false;
             isLoadingGuantes = false;
@@ -536,20 +574,19 @@
 
         try
         {
-            var nuevaSugerencia = new Sugerencia
+            var nuevaSugerencia = new Models.Sugerencia
             {
                 Nombre = sugerenciaForm.Nombre,
                 Email = sugerenciaForm.Email,
                 Mensaje = sugerenciaForm.Mensaje,
-                FechaCreacion = DateTime.UtcNow 
+                FechaCreacion = DateTime.UtcNow
             };
-
             DbContext.Sugerencias.Add(nuevaSugerencia);
             await DbContext.SaveChangesAsync();
 
             submitSuccess = true;
             submitMessage = "¡Tu sugerencia ha sido enviada correctamente!";
-            sugerenciaForm = new Sugerencia(); 
+            sugerenciaForm = new Models.Sugerencia();
         }
         catch (Exception)
         {
@@ -566,6 +603,57 @@
                 await InvokeAsync(() =>
                 {
                     submitMessage = "";
+                    StateHasChanged();
+                });
+            });
+        }
+    }
+
+    private async Task HandleNewsletterSubmit()
+    {
+        isSubmittingNewsletter = true;
+        newsletterMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            bool exists = await DbContext.NewsletterSubscriptions.AnyAsync(s => s.Email == newsletterForm.Email);
+            if (exists)
+            {
+                newsletterSuccess = false;
+                newsletterMessage = "Este correo electrónico ya está suscrito.";
+            }
+            else
+            {
+                var newSubscription = new Models.NewsletterSubscription
+                {
+                    Email = newsletterForm.Email,
+                    SubscriptionDate = DateTime.UtcNow
+                };
+                DbContext.NewsletterSubscriptions.Add(newSubscription);
+                await DbContext.SaveChangesAsync();
+
+                newsletterSuccess = true;
+                newsletterMessage = "¡Te has suscrito correctamente! Revisa tu correo.";
+                newsletterForm = new Models.NewsletterSubscription();
+            }
+        }
+        catch (Exception ex)
+        {
+            newsletterSuccess = false;
+            newsletterMessage = "Error al procesar la suscripción. Inténtalo de nuevo.";
+        }
+        finally
+        {
+            isSubmittingNewsletter = false;
+            StateHasChanged();
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(5000);
+                await InvokeAsync(() =>
+                {
+                    newsletterMessage = "";
                     StateHasChanged();
                 });
             });
@@ -610,7 +698,6 @@
     private void ToggleBannerAutoPlay()
     {
         isBannerAutoPlaying = !isBannerAutoPlaying;
-
         if (isBannerAutoPlaying)
         {
             StartBannerAutoPlay();
@@ -621,11 +708,5 @@
             bannerTimer?.Dispose();
             bannerTimer = null;
         }
-    }
-
-    public void Dispose()
-    {
-        bannerTimer?.Stop();
-        bannerTimer?.Dispose();
     }
 }

@@ -11,6 +11,6 @@ namespace Proyecto_Final.Services
         Task ActualizarCantidadAsync(int itemId, int newQuantity, string? userId, string? sessionId);
         Task EliminarDelCarritoAsync(int itemId, string? userId, string? sessionId);
         Task LimpiarCarritoAsync(string? userId, string? sessionId);
-        Task UnirCarritosAsync(string? loggedInUserId, string? sessionId);
+        Task UnirCarritosAsync(string? loggedInUserId);
     }
 }

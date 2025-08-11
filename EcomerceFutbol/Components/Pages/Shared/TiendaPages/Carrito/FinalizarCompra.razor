@@ -414,7 +414,7 @@
         var nuevoPedido = new Pedido
         {
             UsuarioId = usuarioId,
-            EmailInvitado = isLoggedIn ? null : Input.Email, 
+            EmailInvitado = isLoggedIn ? null : Input.Email,
             FechaPedido = DateTime.UtcNow,
             Total = subtotal,
             Estado = "Procesando",

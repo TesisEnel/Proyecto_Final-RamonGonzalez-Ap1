@@ -20,6 +20,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IProductoService ProductoService
 @inject IHttpContextAccessor HttpContextAccessor
+@inject ILogger<ProductDetail> Logger
 
 <PageTitle>Detalle del Producto</PageTitle>
 
@@ -115,7 +116,7 @@ else
                                     {
                                         <button @onclick="() => SelectVariacion(variacion.Id)"
                                                 class="@(selectedVariacionId == variacion.Id ? "bg-black text-white border-black" : "bg-white text-gray-900 border-gray-300 hover:border-gray-400")
-                                                                               px-6 py-3 border-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
+                                                                                           px-6 py-3 border-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
                                             @variacion.ValorAtributo
                                         </button>
                                     }
@@ -365,7 +366,7 @@ else
                                                         <button type="button"
                                                                 @onclick="() => SetRating(starValue)"
                                                                 class="@(nuevaValoracion.Puntuacion >= starValue ? "text-yellow-400" : "text-gray-300")
-                                                                                                    hover:text-yellow-400 transition-colors focus:outline-none transform hover:scale-110 duration-200">
+                                                                                                                    hover:text-yellow-400 transition-colors focus:outline-none transform hover:scale-110 duration-200">
                                                             <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
                                                             </svg>
@@ -479,7 +480,7 @@ else
 @code {
     [Parameter]
     public int Id { get; set; }
-    private CartModal cartModalRef;
+    private CartModal? cartModalRef;
     private Producto? producto;
     private List<Producto> productosRecomendados = new List<Producto>();
     private int selectedVariacionId;
@@ -496,6 +497,11 @@ else
     private bool isSubmittingReview = false;
     private ApplicationUser? currentUser;
     private bool showReviewForm = false; // Nueva propiedad para controlar la visibilidad del formulario
+
+    // Propiedades para la funcionalidad de carrito de invitado
+    private string? usuarioId;
+    private string? sessionId;
+    private bool isLoggedIn = false;
 
     private ProductoVariacion? selectedVariacion =>
         producto?.Variaciones?.FirstOrDefault(v => v.Id == selectedVariacionId);
@@ -518,6 +524,8 @@ else
 
         await LoadProductAsync();
         await GetCurrentUserAsync();
+        await LoadCartIdentifiers();
+
         if (producto != null)
         {
             if (producto.Variaciones != null && producto.Variaciones.Any())
@@ -538,7 +546,6 @@ else
         isLoading = false;
     }
 
-
     private async Task LoadProductAsync()
     {
         try
@@ -547,11 +554,10 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al cargar el producto: {ex.Message}");
+            Logger.LogError(ex, "Error al cargar el producto: {ProductId}", Id);
             producto = null;
         }
     }
-
 
     private async Task GetCurrentUserAsync()
     {
@@ -563,7 +569,7 @@ else
             if (user.Identity?.IsAuthenticated == true)
             {
                 var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-                currentUser = await UserManager.FindByIdAsync(userId);
+                currentUser = await UserManager.FindByIdAsync(userId!);
 
                 // Establecer los valores predeterminados para el formulario si el usuario está autenticado
                 nuevaValoracion.Nombre = currentUser?.Nombre;
@@ -574,11 +580,35 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al cargar el usuario actual: {ex.Message}");
+            Logger.LogError(ex, "Error al cargar el usuario actual.");
             currentUser = null;
         }
     }
 
+    private async Task LoadCartIdentifiers()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isLoggedIn = user.Identity?.IsAuthenticated ?? false;
+
+        if (isLoggedIn)
+        {
+            usuarioId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            sessionId = null;
+        }
+        else
+        {
+            usuarioId = null;
+            var httpContext = HttpContextAccessor.HttpContext;
+            sessionId = httpContext?.Session.Id;
+
+            if (string.IsNullOrEmpty(sessionId) && httpContext != null)
+            {
+                httpContext.Session.SetString("SessionId", Guid.NewGuid().ToString());
+                sessionId = httpContext.Session.Id;
+            }
+        }
+    }
 
     private async Task LoadRecommendedProductsAsync()
     {
@@ -588,10 +618,9 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al cargar productos recomendados: {ex.Message}");
+            Logger.LogError(ex, "Error al cargar productos recomendados para el producto {ProductId}", Id);
         }
     }
-
 
     private void SelectVariacion(int variacionId)
     {
@@ -600,7 +629,6 @@ else
         CheckStock();
         mensajeCarrito = "";
     }
-
 
     private void IncrementarCantidad()
     {
@@ -611,7 +639,6 @@ else
         }
     }
 
-
     private void DecrementarCantidad()
     {
         if (cantidad > 1)
@@ -620,7 +647,6 @@ else
             CheckStock();
         }
     }
-
 
     private void CheckStock()
     {
@@ -634,18 +660,15 @@ else
         }
     }
 
-
     private void ToggleDescripcion()
     {
         mostrarDescripcion = !mostrarDescripcion;
     }
 
-
     private async Task AgregarAlCarrito()
     {
         mensajeCarrito = "";
         CheckStock();
-
 
         if (!stockSuficiente)
         {
@@ -653,51 +676,18 @@ else
             return;
         }
 
-
-        if (selectedVariacion == null)
+        if (selectedVariacionId == 0)
         {
             mensajeCarrito = "Por favor, seleccione una variación de producto válida.";
             return;
         }
 
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        string? userId = null;
-        string? sessionId = null;
-
-        if (user.Identity?.IsAuthenticated == true)
-        {
-            userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-        }
-        else
-        {
-            // Lógica para usuarios no autenticados
-            var httpContext = HttpContextAccessor.HttpContext;
-            if (httpContext != null)
-            {
-                sessionId = httpContext.Session.Id;
-            }
-            else
-            {
-                // Manejar el caso en que no se pueda acceder a HttpContext
-                mensajeCarrito = "No se pudo gestionar el carrito. Por favor, vuelva a intentarlo.";
-                return;
-            }
-        }
-
-        if (string.IsNullOrEmpty(userId) && string.IsNullOrEmpty(sessionId))
-        {
-            mensajeCarrito = "No se pudo identificar al usuario ni al invitado.";
-            return;
-        }
-
+        // Se corrigió para usar los identificadores de usuario/sesión
+        // cargados previamente.
         try
         {
-            // Pasa el ID del usuario O el ID de la sesión al servicio
-            await CarritoService.AgregarOActualizarItemAsync(userId, sessionId, selectedVariacionId, cantidad);
+            await CarritoService.AgregarOActualizarItemAsync(usuarioId, sessionId, selectedVariacionId, cantidad);
             mensajeCarrito = "Producto agregado con éxito al carrito.";
-
 
             if (cartModalRef != null)
             {
@@ -710,12 +700,10 @@ else
         }
     }
 
-
     private void SetRating(int rating)
     {
         nuevaValoracion.Puntuacion = rating;
     }
-
 
     private void ResetForm()
     {
@@ -730,7 +718,6 @@ else
         reviewMessage = "";
         StateHasChanged();
     }
-
 
     private async Task HandleValidSubmit()
     {
@@ -770,6 +757,7 @@ else
         catch (Exception ex)
         {
             reviewMessage = $"Ocurrió un error al enviar la reseña: {ex.Message}";
+            Logger.LogError(ex, "Error al enviar la reseña.");
         }
         finally
         {
