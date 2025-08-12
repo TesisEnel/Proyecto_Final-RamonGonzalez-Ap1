@@ -13,10 +13,12 @@ namespace Proyecto_Final.Models.Producto
 
         [Required(ErrorMessage = "El tipo de atributo es obligatorio (ej. Talla, Color).")]
         [StringLength(50, ErrorMessage = "El tipo de atributo no puede exceder los 50 caracteres.")]
+        [RegularExpression(@"^[a-zA-Z0-9\s.,'&áéíóúÁÉÍÓÚñÑüÜ-]*$", ErrorMessage = "El tipo de atributo contiene caracteres no permitidos.")]
         public string TipoAtributo { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El valor del atributo es obligatorio (ej. S, M, L, Rojo, Azul).")]
         [StringLength(50, ErrorMessage = "El valor del atributo no puede exceder los 50 caracteres.")]
+        [RegularExpression(@"^[a-zA-Z0-9\s.,'&áéíóúÁÉÍÓÚñÑüÜ-]*$", ErrorMessage = "El valor del atributo contiene caracteres no permitidos.")]
         public string ValorAtributo { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El stock es obligatorio.")]

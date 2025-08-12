@@ -81,7 +81,7 @@
     private List<Proyecto_Final.Models.Producto.Producto> productos = new();
     private bool isLoading = true;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
         if (!string.IsNullOrWhiteSpace(Query))
         {
@@ -90,6 +90,7 @@
         else
         {
             isLoading = false;
+            productos.Clear(); // Limpia los resultados si la búsqueda está vacía
         }
     }
 

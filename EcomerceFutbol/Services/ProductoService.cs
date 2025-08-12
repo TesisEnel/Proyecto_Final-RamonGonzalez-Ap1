@@ -1,12 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Proyecto_Final.Data;
+using Proyecto_Final.Models;
 using Proyecto_Final.Models.Producto;
+using Proyecto_Final.Models.Usuario;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Proyecto_Final.Models;
 
 namespace Proyecto_Final.Services
 {
@@ -19,6 +20,32 @@ namespace Proyecto_Final.Services
         {
             _contextFactory = contextFactory;
             _logger = logger;
+        }
+
+        public async Task<List<Producto>> ObtenerProductosEnRangoDeFechas(DateTime? fechaInicio, DateTime? fechaFin)
+        {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+            try
+            {
+                var query = _context.Productos.AsQueryable();
+
+                if (fechaInicio.HasValue)
+                {
+                    query = query.Where(p => p.FechaCreacion >= fechaInicio.Value);
+                }
+
+                if (fechaFin.HasValue)
+                {
+                    query = query.Where(p => p.FechaCreacion <= fechaFin.Value.AddDays(1));
+                }
+
+                return await query.Include(p => p.Variaciones).OrderBy(p => p.Nombre).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener productos en rango de fechas.");
+                return new List<Producto>();
+            }
         }
 
         public async Task<List<Producto>> ObtenerProductosDestacados(int cantidad)
@@ -111,8 +138,7 @@ namespace Proyecto_Final.Services
             await using var _context = await _contextFactory.CreateDbContextAsync();
             try
             {
-                var producto = await _context.Productos.AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == productoId);
+                var producto = await _context.Productos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == productoId);
 
                 if (producto == null)
                     return new List<Producto>();
@@ -160,10 +186,9 @@ namespace Proyecto_Final.Services
             try
             {
                 return await _context.Productos
-                    .Include(p => p.DetallesPedido)
                     .Include(p => p.Valoraciones)
                     .Include(p => p.Variaciones)
-                    .OrderByDescending(p => p.DetallesPedido.Sum(d => d.Cantidad))
+                    .OrderByDescending(p => p.FechaCreacion) 
                     .Take(cantidad)
                     .ToListAsync();
             }
@@ -258,48 +283,15 @@ namespace Proyecto_Final.Services
             try
             {
                 _context.Valoraciones.Add(valoracion);
+
                 await _context.SaveChangesAsync();
+
+                await ActualizarValoracionPromedio(valoracion.ProductoId);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al agregar valoración");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Obtiene una lista de productos en un rango de fechas de creación opcional.
-        /// </summary>
-        /// <param name="startDate">La fecha de inicio para el filtro (opcional).</param>
-        /// <param name="endDate">La fecha de fin para el filtro (opcional).</param>
-        /// <returns>Una lista de productos que coinciden con el rango de fechas.</returns>
-        public async Task<List<Producto>> ObtenerProductosEnRangoDeFechas(DateTime? startDate, DateTime? endDate)
-        {
-            await using var _context = await _contextFactory.CreateDbContextAsync();
-            try
-            {
-                var query = _context.Productos.AsQueryable();
-
-                if (startDate.HasValue)
-                {
-                    query = query.Where(p => p.FechaCreacion >= startDate.Value);
-                }
-
-                if (endDate.HasValue)
-                {
-                    // Se añade un día para incluir la fecha final completa
-                    query = query.Where(p => p.FechaCreacion <= endDate.Value.AddDays(1));
-                }
-
-                return await query
-                    .Include(p => p.Variaciones) // Es crucial incluir las variaciones para calcular el stock total
-                    .OrderBy(p => p.Nombre)
-                    .ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error al obtener productos en rango de fechas.");
-                return new List<Producto>();
+                throw; 
             }
         }
     }

@@ -2,10 +2,11 @@
 @using Proyecto_Final.Services
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Http
 @inject ICarritoService CarritoService
-@inject IAnonymousCartService AnonymousCartService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject IHttpContextAccessor HttpContextAccessor
 
 @if (IsVisible)
 {
@@ -34,15 +35,15 @@
                     {
                         <div class="flex items-center p-4 border-b border-gray-100 hover:bg-gray-50">
                             <div class="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg overflow-hidden mr-4">
-                                <img src="@item.Producto.ImagenUrl"
-                                     alt="@item.Producto.Nombre"
+                                <img src="@item.ProductoVariacion.Producto.ImagenUrl"
+                                     alt="@item.ProductoVariacion.Producto.Nombre"
                                      class="w-full h-full object-cover"
                                      onerror="this.onerror=null;this.src='https://placehold.co/100x100/E0E0E0/6C757D?text=No+img';" />
                             </div>
 
                             <div class="flex-grow">
-                                <h3 class="font-semibold text-gray-800 text-sm mb-1">@item.Producto.Nombre</h3>
-                                <p class="text-xs text-gray-500 mb-1">@item.Producto.Precio.ToString("C")</p>
+                                <h3 class="font-semibold text-gray-800 text-sm mb-1">@item.ProductoVariacion.Producto.Nombre</h3>
+                                <p class="text-xs text-gray-500 mb-1">@item.ProductoVariacion.Producto.Precio.ToString("C")</p>
                                 @if (item.ProductoVariacion != null && !string.IsNullOrEmpty(item.ProductoVariacion.ValorAtributo))
                                 {
                                     <p class="text-xs text-gray-500">@item.ProductoVariacion.TipoAtributo: @item.ProductoVariacion.ValorAtributo</p>
@@ -51,7 +52,7 @@
                             </div>
 
                             <div class="flex-shrink-0 text-right">
-                                <p class="font-bold text-gray-800 mb-2">@((item.Cantidad * item.Producto.Precio * (1 - item.Producto.Descuento)).ToString("C"))</p>
+                                <p class="font-bold text-gray-800 mb-2">@((item.Cantidad * item.ProductoVariacion.Producto.Precio * (1 - item.ProductoVariacion.Producto.Descuento)).ToString("C"))</p>
                                 <button @onclick="() => RemoveItem(item)" class="text-gray-400 hover:text-red-500 text-sm">
                                     Quitar
                                 </button>
@@ -120,37 +121,48 @@
     private List<CarritoItem> carritoItems = new();
     private bool isLoggedIn;
     private string? usuarioId;
-    private decimal total => carritoItems?.Sum(item => item.Cantidad * item.Producto.Precio * (1 - item.Producto.Descuento)) ?? 0;
+    private string? sessionId;
+
+    private decimal total => carritoItems?.Sum(item => item.Cantidad * item.ProductoVariacion.Producto.Precio * (1 - item.ProductoVariacion.Producto.Descuento)) ?? 0;
 
     protected override async Task OnParametersSetAsync()
     {
         if (IsVisible)
         {
-            await LoadAuthenticationState();
+            await LoadCartIdentifiers();
             await LoadCartItems();
         }
     }
 
-    private async Task LoadAuthenticationState()
+    private async Task LoadCartIdentifiers()
     {
         var authState = await authenticationStateTask;
         var user = authState.User;
         isLoggedIn = user.Identity?.IsAuthenticated ?? false;
-        usuarioId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (isLoggedIn)
+        {
+            usuarioId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            sessionId = null;
+        }
+        else
+        {
+            usuarioId = null;
+            var httpContext = HttpContextAccessor.HttpContext;
+            sessionId = httpContext?.Session.Id;
+            if (string.IsNullOrEmpty(sessionId) && httpContext != null)
+            {
+                httpContext.Session.SetString("SessionId", Guid.NewGuid().ToString());
+                sessionId = httpContext.Session.Id;
+            }
+        }
     }
 
     private async Task LoadCartItems()
     {
         try
         {
-            if (isLoggedIn && !string.IsNullOrEmpty(usuarioId))
-            {
-                carritoItems = await CarritoService.ObtenerItemsDelCarritoAsync(usuarioId);
-            }
-            else
-            {
-                carritoItems = await AnonymousCartService.GetAnonymousCartItemsAsync();
-            }
+            carritoItems = await CarritoService.ObtenerItemsDelCarritoAsync(usuarioId, sessionId);
             StateHasChanged();
         }
         catch (Exception ex)
@@ -170,14 +182,7 @@
     {
         try
         {
-            if (isLoggedIn)
-            {
-                await CarritoService.EliminarDelCarritoAsync(item.Id);
-            }
-            else
-            {
-                await AnonymousCartService.RemoveFromAnonymousCartAsync(item.ProductoVariacionId);
-            }
+            await CarritoService.EliminarDelCarritoAsync(item.Id, usuarioId, sessionId);
 
             await LoadCartItems();
             await OnCartUpdated.InvokeAsync();
@@ -202,15 +207,7 @@
         }
 
         await CloseModal();
-
-        if (!isLoggedIn)
-        {
-            NavigationManager.NavigateTo($"/Account/Login?returnUrl={Uri.EscapeDataString("/checkout")}");
-        }
-        else
-        {
-            NavigationManager.NavigateTo("/checkout");
-        }
+        NavigationManager.NavigateTo("/checkout");
     }
 
     private void AddNoteToOrder()
@@ -220,7 +217,7 @@
     public async Task ShowModal()
     {
         IsVisible = true;
-        await LoadAuthenticationState();
+        await LoadCartIdentifiers();
         await LoadCartItems();
         StateHasChanged();
     }

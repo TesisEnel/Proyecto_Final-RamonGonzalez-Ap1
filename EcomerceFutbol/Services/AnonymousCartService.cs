@@ -21,7 +21,7 @@ namespace Proyecto_Final.Services
 
         public async Task AddToAnonymousCartAsync(int productoVariacionId, int cantidad)
         {
-            var cartItems = GetAnonymousCartItemsFromSession();
+            var cartItems = await GetAnonymousCartItemsFromSessionAsync();
             var existingItem = cartItems.FirstOrDefault(i => i.ProductoVariacionId == productoVariacionId);
 
             if (existingItem != null)
@@ -35,28 +35,25 @@ namespace Proyecto_Final.Services
                 {
                     cartItems.Add(new CarritoItem
                     {
-                        ProductoId = productoVariacion.ProductoId,
                         ProductoVariacionId = productoVariacionId,
                         Cantidad = cantidad,
-                        Producto = productoVariacion.Producto,
                         ProductoVariacion = productoVariacion
                     });
                 }
             }
-            SetAnonymousCartItemsToSession(cartItems);
+            await SetAnonymousCartItemsToSessionAsync(cartItems);
         }
 
         public async Task<List<CarritoItem>> GetAnonymousCartItemsAsync()
         {
-            var cartItems = GetAnonymousCartItemsFromSession();
+            var cartItems = await GetAnonymousCartItemsFromSessionAsync();
             foreach (var item in cartItems)
             {
-                if (item.Producto == null || item.ProductoVariacion == null)
+                if (item.ProductoVariacion == null)
                 {
                     var productoVariacion = await _productoService.ObtenerProductoVariacionPorIdAsync(item.ProductoVariacionId);
                     if (productoVariacion != null)
                     {
-                        item.Producto = productoVariacion.Producto;
                         item.ProductoVariacion = productoVariacion;
                     }
                 }
@@ -66,26 +63,24 @@ namespace Proyecto_Final.Services
 
         public async Task UpdateAnonymousCartItemAsync(int productoVariacionId, int cantidad)
         {
-            var cartItems = GetAnonymousCartItemsFromSession();
+            var cartItems = await GetAnonymousCartItemsFromSessionAsync();
             var itemToUpdate = cartItems.FirstOrDefault(i => i.ProductoVariacionId == productoVariacionId);
             if (itemToUpdate != null)
             {
                 itemToUpdate.Cantidad = cantidad;
-                SetAnonymousCartItemsToSession(cartItems);
+                await SetAnonymousCartItemsToSessionAsync(cartItems);
             }
-            await Task.CompletedTask;
         }
 
         public async Task RemoveFromAnonymousCartAsync(int productoVariacionId)
         {
-            var cartItems = GetAnonymousCartItemsFromSession();
+            var cartItems = await GetAnonymousCartItemsFromSessionAsync();
             var itemToRemove = cartItems.FirstOrDefault(i => i.ProductoVariacionId == productoVariacionId);
             if (itemToRemove != null)
             {
                 cartItems.Remove(itemToRemove);
-                SetAnonymousCartItemsToSession(cartItems);
+                await SetAnonymousCartItemsToSessionAsync(cartItems);
             }
-            await Task.CompletedTask;
         }
 
         public async Task ClearAnonymousCartAsync()
@@ -94,7 +89,7 @@ namespace Proyecto_Final.Services
             await Task.CompletedTask;
         }
 
-        private List<CarritoItem> GetAnonymousCartItemsFromSession()
+        private async Task<List<CarritoItem>> GetAnonymousCartItemsFromSessionAsync()
         {
             var session = _httpContextAccessor.HttpContext?.Session;
             if (session == null)
@@ -105,7 +100,7 @@ namespace Proyecto_Final.Services
             return cartData == null ? new List<CarritoItem>() : JsonSerializer.Deserialize<List<CarritoItem>>(cartData);
         }
 
-        private void SetAnonymousCartItemsToSession(List<CarritoItem> cartItems)
+        private async Task SetAnonymousCartItemsToSessionAsync(List<CarritoItem> cartItems)
         {
             var session = _httpContextAccessor.HttpContext?.Session;
             if (session != null)
